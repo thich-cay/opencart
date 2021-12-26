@@ -1063,9 +1063,20 @@ function db_schema() {
 				'not_null' => true
 			],
 			[
+				'name' => 'custom_field',
+				'type' => 'text',
+				'not_null' => true
+			],
+			[
 				'name' => 'cart',
 				'type' => 'text',
 				'not_null' => true
+			],
+			[
+				'name' => 'address_id',
+				'type' => 'int(11)',
+				'not_null' => true,
+				'default' => '0'
 			],
 			[
 				'name' => 'wishlist',
@@ -1077,17 +1088,6 @@ function db_schema() {
 				'type' => 'tinyint(1)',
 				'not_null' => true,
 				'default' => '0'
-			],
-			[
-				'name' => 'address_id',
-				'type' => 'int(11)',
-				'not_null' => true,
-				'default' => '0'
-			],
-			[
-				'name' => 'custom_field',
-				'type' => 'text',
-				'not_null' => true
 			],
 			[
 				'name' => 'ip',
@@ -3453,6 +3453,11 @@ function db_schema() {
 			[
 				'name' => 'language_id',
 				'type' => 'int(11)',
+				'not_null' => true
+			],
+			[
+				'name' => 'language_code',
+				'type' => 'varchar(5)',
 				'not_null' => true
 			],
 			[

@@ -192,7 +192,7 @@ class TaxRate extends \Opencart\System\Engine\Controller {
 			'href' => $this->url->link('localisation/tax_rate', 'user_token=' . $this->session->data['user_token'] . $url)
 		];
 
-		$data['save'] = $this->url->link('localisation/tax_rate|save', 'user_token=' . $this->session->data['user_token'] . $url);
+		$data['save'] = $this->url->link('localisation/tax_rate|save', 'user_token=' . $this->session->data['user_token']);
 		$data['back'] = $this->url->link('localisation/tax_rate', 'user_token=' . $this->session->data['user_token'] . $url);
 
 		if (isset($this->request->get['tax_rate_id'])) {
@@ -225,25 +225,25 @@ class TaxRate extends \Opencart\System\Engine\Controller {
 			$data['type'] = '';
 		}
 
+		$this->load->model('customer/customer_group');
+
+		$data['customer_groups'] = $this->model_customer_customer_group->getCustomerGroups();
+
 		if (isset($this->request->get['tax_rate_id'])) {
 			$data['tax_rate_customer_group'] = $this->model_localisation_tax_rate->getCustomerGroups($this->request->get['tax_rate_id']);
 		} else {
 			$data['tax_rate_customer_group'] = [$this->config->get('config_customer_group_id')];
 		}
 
-		$this->load->model('customer/customer_group');
+		$this->load->model('localisation/geo_zone');
 
-		$data['customer_groups'] = $this->model_customer_customer_group->getCustomerGroups();
+		$data['geo_zones'] = $this->model_localisation_geo_zone->getGeoZones();
 
 		if (!empty($tax_rate_info)) {
 			$data['geo_zone_id'] = $tax_rate_info['geo_zone_id'];
 		} else {
 			$data['geo_zone_id'] = '';
 		}
-
-		$this->load->model('localisation/geo_zone');
-
-		$data['geo_zones'] = $this->model_localisation_geo_zone->getGeoZones();
 
 		$data['header'] = $this->load->controller('common/header');
 		$data['column_left'] = $this->load->controller('common/column_left');

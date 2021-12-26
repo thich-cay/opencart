@@ -2,21 +2,31 @@
 namespace Opencart\Catalog\Controller\Checkout;
 class ShippingAddress extends \Opencart\System\Engine\Controller {
 	public function index(): string {
-		$this->load->language('checkout/checkout');
+		$this->load->language('checkout/shipping_address');
 
 		$data['error_upload_size'] = sprintf($this->language->get('error_upload_size'), $this->config->get('config_file_max_size'));
 
-		$data['config_file_max_size'] = $this->config->get('config_file_max_size');
+		$data['config_checkout_address'] = $this->config->get('config_checkout_address');
+		$data['config_file_max_size'] = ((int)$this->config->get('config_file_max_size') * 1000);
+
+		$data['upload'] = $this->url->link('tool/upload', 'language=' . $this->config->get('config_language'));
 
 		$data['language'] = $this->config->get('config_language');
+
+		$this->load->model('account/address');
 
 		if (isset($this->session->data['shipping_address']['address_id'])) {
 			$data['address_id'] = (int)$this->session->data['shipping_address']['address_id'];
 		} else {
 			$data['address_id'] = $this->customer->getAddressId();
-		}
 
-		$this->load->model('account/address');
+			// Set shipping address
+			$address_info = $this->model_account_address->getAddress($data['address_id']);
+
+			if ($address_info) {
+				$this->session->data['shipping_address'] = $address_info;
+			}
+		}
 
 		$data['addresses'] = $this->model_account_address->getAddresses();
 
@@ -41,7 +51,7 @@ class ShippingAddress extends \Opencart\System\Engine\Controller {
 	}
 
 	public function save(): void {
-		$this->load->language('checkout/checkout');
+		$this->load->language('checkout/shipping_address');
 
 		$json = [];
 
@@ -54,15 +64,7 @@ class ShippingAddress extends \Opencart\System\Engine\Controller {
 		$products = $this->cart->getProducts();
 
 		foreach ($products as $product) {
-			$product_total = 0;
-
-			foreach ($products as $product_2) {
-				if ($product_2['product_id'] == $product['product_id']) {
-					$product_total += $product_2['quantity'];
-				}
-			}
-
-			if ($product['minimum'] > $product_total) {
+			if (!$product['minimum']) {
 				$json['redirect'] = $this->url->link('checkout/cart', 'language=' . $this->config->get('config_language'), true);
 
 				break;
@@ -72,11 +74,6 @@ class ShippingAddress extends \Opencart\System\Engine\Controller {
 		// Validate if customer is logged in or customer session data is not set
 		if (!$this->customer->isLogged() || !isset($this->session->data['customer'])) {
 			$json['redirect'] = $this->url->link('account/login', 'language=' . $this->config->get('config_language'), true);
-		}
-
-		// Validate if payment address is set if required in settings
-		if ($this->config->get('config_checkout_address') && !isset($this->session->data['payment_address'])) {
-			$json['redirect'] = $this->url->link('checkout/cart', 'language=' . $this->config->get('config_language'), true);
 		}
 
 		// Validate if shipping not required
@@ -143,9 +140,9 @@ class ShippingAddress extends \Opencart\System\Engine\Controller {
 
 			foreach ($custom_fields as $custom_field) {
 				if ($custom_field['location'] == 'address') {
-					if ($custom_field['required'] && empty($this->request->post['custom_field'][$custom_field['location']][$custom_field['custom_field_id']])) {
+					if ($custom_field['required'] && empty($this->request->post['custom_field'][$custom_field['custom_field_id']])) {
 						$json['error']['shipping_custom_field_' . $custom_field['custom_field_id']] = sprintf($this->language->get('error_custom_field'), $custom_field['name']);
-					} elseif (($custom_field['type'] == 'text') && !empty($custom_field['validation']) && !preg_match(html_entity_decode($custom_field['validation'], ENT_QUOTES, 'UTF-8'), $this->request->post['custom_field'][$custom_field['location']][$custom_field['custom_field_id']])) {
+					} elseif (($custom_field['type'] == 'text') && !empty($custom_field['validation']) && !preg_match(html_entity_decode($custom_field['validation'], ENT_QUOTES, 'UTF-8'), $this->request->post['custom_field'][$custom_field['custom_field_id']])) {
 						$json['error']['shipping_custom_field_' . $custom_field['custom_field_id']] = sprintf($this->language->get('error_regex'), $custom_field['name']);
 					}
 				}
@@ -203,16 +200,9 @@ class ShippingAddress extends \Opencart\System\Engine\Controller {
 				'custom_field'   => isset($this->request->post['custom_field']) ? $this->request->post['custom_field'] : []
 			];
 
-			$json['success'] = 'Success: Your address has been successfully created!';
+			$json['success'] = $this->language->get('text_success');
 
 			unset($this->session->data['shipping_methods']);
-
-			// Shipping methods
-			$this->load->model('checkout/shipping_method');
-
-			$json['shipping_methods'] = $this->model_checkout_shipping_method->getMethods($this->session->data['shipping_address']);
-
-			$this->session->data['shipping_methods'] = $json['shipping_methods'];
 		}
 
 		$this->response->addHeader('Content-Type: application/json');
@@ -220,7 +210,7 @@ class ShippingAddress extends \Opencart\System\Engine\Controller {
 	}
 
 	public function address(): void {
-		$this->load->language('checkout/checkout');
+		$this->load->language('checkout/shipping_address');
 
 		$json = [];
 
@@ -239,15 +229,7 @@ class ShippingAddress extends \Opencart\System\Engine\Controller {
 		$products = $this->cart->getProducts();
 
 		foreach ($products as $product) {
-			$product_total = 0;
-
-			foreach ($products as $product_2) {
-				if ($product_2['product_id'] == $product['product_id']) {
-					$product_total += $product_2['quantity'];
-				}
-			}
-
-			if ($product['minimum'] > $product_total) {
+			if (!$product['minimum']) {
 				$json['redirect'] = $this->url->link('checkout/cart', 'language=' . $this->config->get('config_language'), true);
 
 				break;
@@ -282,16 +264,9 @@ class ShippingAddress extends \Opencart\System\Engine\Controller {
 		if (!$json) {
 			$this->session->data['shipping_address'] = $address_info;
 
-			$json['success'] = 'Success: Your address has been successfully created!';
+			$json['success'] = $this->language->get('text_success');
 
 			unset($this->session->data['shipping_methods']);
-
-			// Shipping methods
-			$this->load->model('checkout/shipping_method');
-
-			$json['shipping_methods'] = $this->model_checkout_shipping_method->getMethods($address_info);
-
-			$this->session->data['shipping_methods'] = $json['shipping_methods'];
 		}
 
 		$this->response->addHeader('Content-Type: application/json');

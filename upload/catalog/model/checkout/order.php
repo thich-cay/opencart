@@ -19,17 +19,16 @@ class Order extends \Opencart\System\Engine\Model {
 			}
 		}
 
-		// Gift Voucher
-		$this->load->model('account/voucher');
-
 		// Vouchers
 		if (isset($data['vouchers'])) {
+			$this->load->model('checkout/voucher');
+
 			foreach ($data['vouchers'] as $voucher) {
 				$this->db->query("INSERT INTO `" . DB_PREFIX . "order_voucher` SET `order_id` = '" . (int)$order_id . "', `description` = '" . $this->db->escape($voucher['description']) . "', `code` = '" . $this->db->escape($voucher['code']) . "', `from_name` = '" . $this->db->escape($voucher['from_name']) . "', `from_email` = '" . $this->db->escape($voucher['from_email']) . "', `to_name` = '" . $this->db->escape($voucher['to_name']) . "', `to_email` = '" . $this->db->escape($voucher['to_email']) . "', `voucher_theme_id` = '" . (int)$voucher['voucher_theme_id'] . "', `message` = '" . $this->db->escape($voucher['message']) . "', `amount` = '" . (float)$voucher['amount'] . "'");
 
 				$order_voucher_id = $this->db->getLastId();
 
-				$voucher_id = $this->model_account_voucher->addVoucher($order_id, $voucher);
+				$voucher_id = $this->model_checkout_voucher->addVoucher($order_id, $voucher);
 
 				$this->db->query("UPDATE `" . DB_PREFIX . "order_voucher` SET `voucher_id` = '" . (int)$voucher_id . "' WHERE `order_voucher_id` = '" . (int)$order_voucher_id . "'");
 			}
@@ -54,10 +53,8 @@ class Order extends \Opencart\System\Engine\Model {
 		if ($order_info) {
 			// 2. Merge the old order data with the new data
 			foreach ($order_info as $key => $value) {
-				if (isset($data[$key])) {
-					$order[$key] = $data[$key];
-				} elseif (isset($order_data[$key])) {
-					$order[$key] = $order_info[$key];
+				if (!isset($data[$key])) {
+					$data[$key] = $value;
 				}
 			}
 
@@ -80,9 +77,9 @@ class Order extends \Opencart\System\Engine\Model {
 			}
 
 			// Gift Voucher
-			$this->load->model('account/voucher');
+			$this->load->model('checkout/voucher');
 
-			$this->model_account_voucher->disableVoucher($order_id);
+			$this->model_checkout_voucher->deleteVoucherByOrderId($order_id);
 
 			// Vouchers
 			$this->db->query("DELETE FROM `" . DB_PREFIX . "order_voucher` WHERE `order_id` = '" . (int)$order_id . "'");
@@ -93,7 +90,7 @@ class Order extends \Opencart\System\Engine\Model {
 
 					$order_voucher_id = $this->db->getLastId();
 
-					$voucher_id = $this->model_account_voucher->addVoucher($order_id, $voucher);
+					$voucher_id = $this->model_checkout_voucher->addVoucher($order_id, $voucher);
 
 					$this->db->query("UPDATE `" . DB_PREFIX . "order_voucher` SET `voucher_id` = '" . (int)$voucher_id . "' WHERE `order_voucher_id` = '" . (int)$order_voucher_id . "'");
 				}
@@ -124,9 +121,9 @@ class Order extends \Opencart\System\Engine\Model {
 		$this->db->query("DELETE FROM `" . DB_PREFIX . "customer_transaction` WHERE `order_id` = '" . (int)$order_id . "'");
 
 		// Gift Voucher
-		$this->load->model('account/voucher');
+		$this->load->model('checkout/voucher');
 
-		$this->model_account_voucher->disableVoucher($order_id);
+		$this->model_checkout_voucher->deleteVoucherByOrderId($order_id);
 	}
 
 	public function getOrder(int $order_id): array {
@@ -137,6 +134,8 @@ class Order extends \Opencart\System\Engine\Model {
 
 			$this->load->model('localisation/country');
 			$this->load->model('localisation/zone');
+
+			$order_data['custom_field'] = json_decode($order_query->row['custom_field'], true);
 
 			foreach (['payment', 'shipping'] as $column) {
 				$country_info = $this->model_localisation_country->getCountry($order_query->row[$column . '_country_id']);
@@ -159,18 +158,6 @@ class Order extends \Opencart\System\Engine\Model {
 
 				$order_data[$column . '_custom_field'] = json_decode($order_query->row[$column . '_custom_field'], true);
 			}
-
-			$this->load->model('localisation/language');
-
-			$language_info = $this->model_localisation_language->getLanguage($order_query->row['language_id']);
-
-			if ($language_info) {
-				$order_data['language_code'] = $language_info['code'];
-			} else {
-				$order_data['language_code'] = $this->config->get('config_language');
-			}
-
-			$order_data['custom_field'] = json_decode($order_query->row['custom_field'], true);
 
 			return $order_data;
 		} else {

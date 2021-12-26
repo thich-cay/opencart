@@ -2,80 +2,53 @@
 namespace Opencart\Catalog\Controller\Checkout;
 class Confirm extends \Opencart\System\Engine\Controller {
 	public function index(): string {
-		$this->load->language('checkout/checkout');
+		$this->load->language('checkout/confirm');
+
+		if ($this->customer->isLogged() || !$this->config->get('config_customer_price')) {
+			$json['redirect'] = $this->url->link('checkout/cart', 'language=' . $this->config->get('config_language'), true);
+		}
 
 		// Order Totals
 		$totals = [];
 		$taxes = $this->cart->getTaxes();
 		$total = 0;
 
-		$sort_order = [];
+		$this->load->model('checkout/cart');
 
-		$this->load->model('setting/extension');
-
-		$results = $this->model_setting_extension->getExtensionsByType('total');
-
-		foreach ($results as $key => $value) {
-			$sort_order[$key] = $this->config->get('total_' . $value['code'] . '_sort_order');
-		}
-
-		array_multisort($sort_order, SORT_ASC, $results);
-
-		foreach ($results as $result) {
-			if ($this->config->get('total_' . $result['code'] . '_status')) {
-				$this->load->model('extension/' . $result['extension'] . '/total/' . $result['code']);
-
-				// __call can not pass-by-reference so we get PHP to call it as an anonymous function.
-				($this->{'model_extension_' . $result['extension'] . '_total_' . $result['code']}->getTotal)($totals, $taxes, $total);
-			}
-		}
-
-		$sort_order = [];
-
-		foreach ($totals as $key => $value) {
-			$sort_order[$key] = $value['sort_order'];
-		}
-
-		array_multisort($sort_order, SORT_ASC, $totals);
+		($this->model_checkout_cart->getTotals)($totals, $taxes, $total);
 
 		$status = true;
+
+		if (!isset($this->session->data['customer'])) {
+			$status = false;
+		}
 
 		// Validate cart has products and has stock.
 		if ((!$this->cart->hasProducts() && empty($this->session->data['vouchers'])) || (!$this->cart->hasStock() && !$this->config->get('config_stock_checkout'))) {
 			$status = false;
-
-			echo 'cart has products and has stock.';
 		}
 
 		// Validate minimum quantity requirements.
 		$products = $this->cart->getProducts();
 
 		foreach ($products as $product) {
-			$product_total = 0;
-
-			foreach ($products as $product_2) {
-				if ($product_2['product_id'] == $product['product_id']) {
-					$product_total += $product_2['quantity'];
-				}
-			}
-
-			if ($product['minimum'] > $product_total) {
-				$status = false;
-
-				echo 'minimum quantity requirements.';
+			if (!$product['minimum']) {
+				$json['redirect'] = $this->url->link('checkout/cart', 'language=' . $this->config->get('config_language'), true);
 
 				break;
 			}
 		}
 
-		// Validate if shipping address and shipping method has been set
-		if ($this->cart->hasShipping()) {
+		// Validate if payment address has been set.
+		if ($this->config->get('config_checkout_address') && !isset($this->session->data['payment_address'])) {
+			$status = false;
+		}
 
+		// Shipping
+		if ($this->cart->hasShipping()) {
 			// Validate shipping address
 			if (!isset($this->session->data['shipping_address'])) {
 				$status = false;
-
-				echo 'shipping_address not set';
 			}
 
 			// Validate shipping method
@@ -84,13 +57,9 @@ class Confirm extends \Opencart\System\Engine\Controller {
 
 				if (!isset($shipping[0]) || !isset($shipping[1]) || !isset($this->session->data['shipping_methods'][$shipping[0]]['quote'][$shipping[1]])) {
 					$status = false;
-
-					echo 'shipping_method not recognised';
 				}
 			} else {
 				$status = false;
-
-				echo 'shipping_method not set';
 			}
 		} else {
 			unset($this->session->data['shipping_address']);
@@ -98,17 +67,12 @@ class Confirm extends \Opencart\System\Engine\Controller {
 			unset($this->session->data['shipping_methods']);
 		}
 
-		// Validate if payment address has been set.
-		if ($this->config->get('config_checkout_address') && !isset($this->session->data['payment_address'])) {
-			$status = false;
-
-			echo 'payment_address not set.';
-		}
-
 		if (!isset($this->session->data['payment_method']) || !isset($this->session->data['payment_methods']) || !isset($this->session->data['payment_methods'][$this->session->data['payment_method']])) {
 			$status = false;
+		}
 
-			echo 'payment_method not set';
+		if ($this->config->get('config_checkout_id') && !isset($this->session->data['agree'])) {
+			$status = false;
 		}
 
 		// Generate order if payment method is set
@@ -161,19 +125,10 @@ class Confirm extends \Opencart\System\Engine\Controller {
 				$order_data['payment_custom_field'] = [];
 			}
 
-			if (isset($this->session->data['payment_methods']) && $this->session->data['payment_method']) {
-				$payment_method_info = $this->session->data['payment_methods'][$this->session->data['payment_method']];
+			$payment_method_info = $this->session->data['payment_methods'][$this->session->data['payment_method']];
 
-
-
-
-				$order_data['payment_method'] = $payment_method_info['title'];
-				$order_data['payment_code'] = $payment_method_info['code'];
-
-			} else {
-				$order_data['payment_method'] = '';
-				$order_data['payment_code'] = '';
-			}
+			$order_data['payment_method'] = $payment_method_info['title'];
+			$order_data['payment_code'] = $payment_method_info['code'];
 
 			// Shipping Details
 			if ($this->cart->hasShipping()) {
@@ -256,19 +211,13 @@ class Confirm extends \Opencart\System\Engine\Controller {
 			$order_data['vouchers'] = [];
 
 			if (!empty($this->session->data['vouchers'])) {
-				foreach ($this->session->data['vouchers'] as $voucher) {
-					$order_data['vouchers'][] = [
-						'description'      => $voucher['description'],
-						'code'             => token(10),
-						'to_name'          => $voucher['to_name'],
-						'to_email'         => $voucher['to_email'],
-						'from_name'        => $voucher['from_name'],
-						'from_email'       => $voucher['from_email'],
-						'voucher_theme_id' => $voucher['voucher_theme_id'],
-						'message'          => $voucher['message'],
-						'amount'           => $voucher['amount']
-					];
-				}
+				$order_data['vouchers'] = $this->session->data['vouchers'];
+			}
+
+			if (isset($this->session->data['comment'])) {
+				$order_data['comment'] = $this->session->data['comment'];
+			} else {
+				$order_data['comment'] = '';
 			}
 
 			$total_data = [
@@ -279,24 +228,22 @@ class Confirm extends \Opencart\System\Engine\Controller {
 
 			$order_data = array_merge($order_data, $total_data);
 
-			if (isset($this->request->post['comment'])) {
-				$order_data['comment'] = $this->request->post['comment'];
-			} else {
-				$order_data['comment'] = '';
-			}
+
+
+
 
 			$order_data['tracking'] = '';
 			$order_data['affiliate_id'] = 0;
 			$order_data['commission'] = 0;
 			$order_data['marketing_id'] = 0;
 
-			if (isset($this->request->post['affiliate_id']) && $this->config->get('config_affiliate_status')) {
+			if ($this->config->get('config_affiliate_status') && isset($this->session->data['tracking'])) {
 				$subtotal = $this->cart->getSubTotal();
 
 				// Affiliate
 				$this->load->model('account/affiliate');
 
-				$affiliate_info = $this->model_account_affiliate->getAffiliate($this->request->post['affiliate_id']);
+				$affiliate_info = $this->model_account_affiliate->getAffiliateByTracking($this->session->data['tracking']);
 
 				if ($affiliate_info) {
 					$order_data['affiliate_id'] = $affiliate_info['customer_id'];
@@ -304,10 +251,15 @@ class Confirm extends \Opencart\System\Engine\Controller {
 				}
 			}
 
+
+
 			$order_data['language_id'] = $this->config->get('config_language_id');
+			$order_data['language_code'] = $this->config->get('config_language');
+
 			$order_data['currency_id'] = $this->currency->getId($this->session->data['currency']);
 			$order_data['currency_code'] = $this->session->data['currency'];
 			$order_data['currency_value'] = $this->currency->getValue($this->session->data['currency']);
+
 			$order_data['ip'] = $this->request->server['REMOTE_ADDR'];
 
 			if (!empty($this->request->server['HTTP_X_FORWARDED_FOR'])) {
@@ -335,7 +287,11 @@ class Confirm extends \Opencart\System\Engine\Controller {
 			if (!isset($this->session->data['order_id'])) {
 				$this->session->data['order_id'] = $this->model_checkout_order->addOrder($order_data);
 			} else {
-				$this->model_checkout_order->editOrder($this->session->data['order_id'], $order_data);
+				$order_info = $this->model_checkout_order->getOrder($this->session->data['order_id']);
+
+				if ($order_info && !$order_info['order_status_id']) {
+					$this->model_checkout_order->editOrder($this->session->data['order_id'], $order_data);
+				}
 			}
 		}
 
@@ -352,28 +308,11 @@ class Confirm extends \Opencart\System\Engine\Controller {
 
 		$data['products'] = [];
 
-		foreach ($this->cart->getProducts() as $product) {
-			$option_data = [];
+		$this->load->model('checkout/cart');
 
-			foreach ($product['option'] as $option) {
-				if ($option['type'] != 'file') {
-					$value = $option['value'];
-				} else {
-					$upload_info = $this->model_tool_upload->getUploadByCode($option['value']);
+		$products = $this->model_checkout_cart->getProducts();
 
-					if ($upload_info) {
-						$value = $upload_info['name'];
-					} else {
-						$value = '';
-					}
-				}
-
-				$option_data[] = [
-					'name'  => $option['name'],
-					'value' => (utf8_strlen($value) > 20 ? utf8_substr($value, 0, 20) . '..' : $value)
-				];
-			}
-
+		foreach ($products as $product) {
 			$recurring = '';
 
 			if ($product['recurring']) {
@@ -393,12 +332,11 @@ class Confirm extends \Opencart\System\Engine\Controller {
 				'product_id' => $product['product_id'],
 				'name'       => $product['name'],
 				'model'      => $product['model'],
-				'option'     => $option_data,
+				'option'     => $product['option'],
 				'recurring'  => $recurring,
 				'quantity'   => $product['quantity'],
-				'subtract'   => $product['subtract'],
 				'price'      => $this->currency->format($this->tax->calculate($product['price'], $product['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']),
-				'total'      => $this->currency->format($this->tax->calculate($product['price'], $product['tax_class_id'], $this->config->get('config_tax')) * $product['quantity'], $this->session->data['currency']),
+				'total'      => $this->currency->format($this->tax->calculate($product['price'] * $product['quantity'], $product['tax_class_id'], $this->config->get('config_tax')), $this->session->data['currency']),
 				'href'       => $this->url->link('product/product', 'language=' . $this->config->get('config_language') . '&product_id=' . $product['product_id'])
 			];
 		}
@@ -406,13 +344,13 @@ class Confirm extends \Opencart\System\Engine\Controller {
 		// Gift Voucher
 		$data['vouchers'] = [];
 
-		if (!empty($this->session->data['vouchers'])) {
-			foreach ($this->session->data['vouchers'] as $voucher) {
-				$data['vouchers'][] = [
-					'description' => $voucher['description'],
-					'amount'      => $this->currency->format($voucher['amount'], $this->session->data['currency'])
-				];
-			}
+		$vouchers = $this->model_checkout_cart->getVouchers();
+
+		foreach ($vouchers as $voucher) {
+			$data['vouchers'][] = [
+				'description' => $voucher['description'],
+				'amount'      => $this->currency->format($voucher['amount'], $this->session->data['currency'])
+			];
 		}
 
 		$data['totals'] = [];
@@ -433,7 +371,7 @@ class Confirm extends \Opencart\System\Engine\Controller {
 
 		$extension_info = $this->model_setting_extension->getExtensionByCode('payment', $code);
 
-		if ($extension_info) {
+		if ($status && $extension_info) {
 			$data['payment'] = $this->load->controller('extension/' . $extension_info['extension'] . '/payment/' . $extension_info['code']);
 		} else {
 			$data['payment'] = '';
@@ -444,17 +382,5 @@ class Confirm extends \Opencart\System\Engine\Controller {
 
 	public function confirm(): void {
 		$this->response->setOutput($this->index());
-	}
-
-	public function fhdfh(): void {
-		if ($this->config->get('config_checkout_id')) {
-			$this->load->model('catalog/information');
-
-			$information_info = $this->model_catalog_information->getInformation($this->config->get('config_checkout_id'));
-
-			if ($information_info && !isset($this->request->post['agree'])) {
-				$json['error'] = sprintf($this->language->get('error_agree'), $information_info['title']);
-			}
-		}
 	}
 }

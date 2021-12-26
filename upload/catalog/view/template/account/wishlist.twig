@@ -5,56 +5,11 @@
       <li class="breadcrumb-item"><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
     {% endfor %}
   </ul>
-  {% if success %}
-    <div class="alert alert-success alert-dismissible"><i class="fas fa-check-circle"></i> {{ success }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-  {% endif %}
   <div class="row">{{ column_left }}
     <div id="content" class="col">
       {{ content_top }}
       <h1>{{ heading_title }}</h1>
-      {% if products %}
-        <div class="table-responsive">
-          <table class="table table-bordered table-hover">
-            <thead>
-              <tr>
-                <td class="text-center">{{ column_image }}</td>
-                <td class="text-start">{{ column_name }}</td>
-                <td class="text-start">{{ column_model }}</td>
-                <td class="text-end">{{ column_stock }}</td>
-                <td class="text-end">{{ column_price }}</td>
-                <td class="text-end">{{ column_action }}</td>
-              </tr>
-            </thead>
-            <tbody>
-              {% for product in products %}
-                <tr>
-                  <td class="text-center">{% if product.thumb %}<a href="{{ product.href }}"><img src="{{ product.thumb }}" alt="{{ product.name }}" title="{{ product.name }}"/></a>{% endif %}</td>
-                  <td class="text-start"><a href="{{ product.href }}">{{ product.name }}</a></td>
-                  <td class="text-start">{{ product.model }}</td>
-                  <td class="text-end">{{ product.stock }}</td>
-                  <td class="text-end">
-                    {% if product.price %}
-                      <div class="price">
-                        {% if not product.special %}
-                          {{ product.price }}
-                        {% else %}
-                          <b>{{ product.special }}</b> <s>{{ product.price }}</s>
-                        {% endif %}
-                      </div>
-                    {% endif %}</td>
-                  <td class="text-end">
-                    <button type="button" onclick="cart.add('{{ product.product_id }}');" data-bs-toggle="tooltip" title="{{ button_cart }}" class="btn btn-primary"><i class="fas fa-shopping-cart"></i></button>
-                    <a href="{{ product.remove }}" data-bs-toggle="tooltip" title="{{ button_remove }}" class="btn btn-danger"><i class="fas fa-times"></i></a></td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <p>{{ text_no_results }}</p>
-      {% endif %}
+      <div id="wishlist">{{ list }}</div>
       <div class="d-inline-block pt-2 pd-2 w-100">
         <div class="float-end"><a href="{{ continue }}" class="btn btn-primary">{{ button_continue }}</a></div>
       </div>
@@ -63,59 +18,4 @@
     {{ column_right }}
   </div>
 </div>
-
-<script type="text/javascript"><!--
-// New Payment Address
-$('#button-payment-address').click(function(e) {
-    e.preventDefault();
-
-    chain.attach(function() {
-        return $.ajax({
-            url: 'index.php?route=checkout/payment_address|save&language={{ language }}',
-            type: 'post',
-            data: data,
-            dataType: 'json',
-            contentType: 'application/x-www-form-urlencoded',
-            beforeSend: function() {
-                $('#button-payment-address').button('loading');
-            },
-            complete: function() {
-                $('#button-payment-address').button('reset');
-            },
-            success: function(json) {
-                console.log(json);
-                console.log(json['error']);
-
-
-                $('#form-payment-address').find('.is-invalid').removeClass('is-invalid');
-                $('#form-payment-address').find('.invalid-feedback').removeClass('d-block');
-
-                if (json['redirect']) {
-                    location = json['redirect'];
-                }
-
-                if (json['error']) {
-                    if (json['error']['warning']) {
-                        $('#alert').prepend('<div class="alert alert-warning alert-dismissible"> ' + json['error']['warning'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
-                    }
-
-                    for (i in json['error']) {
-                        for (key in json['error']) {
-                            $('#input-' + key.replaceAll('_', '-')).addClass('is-invalid').find('.form-control, .form-select, .form-check-input, .form-check-label').addClass('is-invalid');
-                            $('#error-' + key.replaceAll('_', '-')).html(json['error'][key]).addClass('d-block');
-                        }
-                    }
-                }
-
-                if (json['success']) {
-                    $('#alert').prepend('<div class="alert alert-success alert-dismissible"> ' + json['success'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
-                }
-            },
-            error: function(xhr, ajaxOptions, thrownError) {
-                console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
-            }
-        });
-    });
-});
-//--></script>
 {{ footer }}

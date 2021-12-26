@@ -174,7 +174,7 @@ class User extends \Opencart\System\Engine\Controller {
 			$url .= '&page=' . $this->request->get['page'];
 		}
 
-		$data['save'] = $this->url->link('user/user|save', 'user_token=' . $this->session->data['user_token'] . $url);
+		$data['save'] = $this->url->link('user/user|save', 'user_token=' . $this->session->data['user_token']);
 		$data['back'] = $this->url->link('user/user', 'user_token=' . $this->session->data['user_token'] . $url);
 
 		if (isset($this->request->get['user_id'])) {
@@ -195,15 +195,15 @@ class User extends \Opencart\System\Engine\Controller {
 			$data['username'] = '';
 		}
 
-		if (!empty($user_info)) {
-			$data['user_group_id'] = $user_info['user_group_id'];
-		} else {
-			$data['user_group_id'] = '';
-		}
-
 		$this->load->model('user/user_group');
 
 		$data['user_groups'] = $this->model_user_user_group->getUserGroups();
+
+		if (!empty($user_info)) {
+			$data['user_group_id'] = $user_info['user_group_id'];
+		} else {
+			$data['user_group_id'] = 0;
+		}
 
 		if (!empty($user_info)) {
 			$data['firstname'] = $user_info['firstname'];

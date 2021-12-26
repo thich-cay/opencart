@@ -191,7 +191,7 @@ class Api extends \Opencart\System\Engine\Controller {
 			'href' => $this->url->link('user/api', 'user_token=' . $this->session->data['user_token'] . $url)
 		];
 
-		$data['save'] = $this->url->link('user/api|save', 'user_token=' . $this->session->data['user_token'] . $url);
+		$data['save'] = $this->url->link('user/api|save', 'user_token=' . $this->session->data['user_token']);
 		$data['back'] = $this->url->link('user/api', 'user_token=' . $this->session->data['user_token'] . $url);
 
 		if (isset($this->request->get['api_id'])) {
@@ -330,7 +330,9 @@ class Api extends \Opencart\System\Engine\Controller {
 
 		if (!$this->user->hasPermission('modify', 'user/api')) {
 			$json['error'] = $this->language->get('error_permission');
-		} else {
+		}
+
+		if (!$json) {
 			$this->load->model('user/api');
 
 			$this->model_user_api->deleteSession($this->request->get['api_session_id']);

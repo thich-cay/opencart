@@ -4,6 +4,12 @@ class Affiliate extends \Opencart\System\Engine\Controller {
 	public function index(): void {
 		$this->load->language('account/affiliate');
 
+		if (!$this->customer->isLogged() || (!isset($this->request->get['customer_token']) || !isset($this->session->data['customer_token']) || ($this->request->get['customer_token'] != $this->session->data['customer_token']))) {
+			$this->session->data['redirect'] = $this->url->link('account/returns', 'language=' . $this->config->get('config_language'));
+
+			$this->response->redirect($this->url->link('account/login', 'language=' . $this->config->get('config_language')));
+		}
+
 		$this->document->setTitle($this->language->get('heading_title'));
 
 		$this->document->addScript('catalog/view/javascript/jquery/datetimepicker/moment/moment.min.js');
@@ -13,7 +19,7 @@ class Affiliate extends \Opencart\System\Engine\Controller {
 
 		$data['error_upload_size'] = sprintf($this->language->get('error_upload_size'), $this->config->get('config_file_max_size'));
 
-		$data['config_file_max_size'] = $this->config->get('config_file_max_size');
+		$data['config_file_max_size'] = ((int)$this->config->get('config_file_max_size') * 1000);
 
 		$data['breadcrumbs'] = [];
 
@@ -24,15 +30,16 @@ class Affiliate extends \Opencart\System\Engine\Controller {
 
 		$data['breadcrumbs'][] = [
 			'text' => $this->language->get('text_account'),
-			'href' => $this->url->link('account/account', 'language=' . $this->config->get('config_language'))
+			'href' => $this->url->link('account/account', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token'])
 		];
 
 		$data['breadcrumbs'][] = [
 			'text' => $this->language->get('text_affiliate'),
-			'href' => $this->url->link('account/affiliate', 'language=' . $this->config->get('config_language'))
+			'href' => $this->url->link('account/affiliate', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token'])
 		];
 
-		$data['save'] = $this->url->link('account/affiliate|save', 'language=' . $this->config->get('config_language'));
+		$data['save'] = $this->url->link('account/affiliate|save', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token']);
+		$data['upload'] = $this->url->link('tool/upload', 'language=' . $this->config->get('config_language'));
 
 		$this->load->model('account/affiliate');
 
@@ -137,7 +144,7 @@ class Affiliate extends \Opencart\System\Engine\Controller {
 			$data['text_agree'] = '';
 		}
 
-		$data['back'] = $this->url->link('account/account', 'language=' . $this->config->get('config_language'));
+		$data['back'] = $this->url->link('account/account', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token']);
 
 		$data['column_left'] = $this->load->controller('common/column_left');
 		$data['column_right'] = $this->load->controller('common/column_right');
@@ -154,8 +161,14 @@ class Affiliate extends \Opencart\System\Engine\Controller {
 
 		$json = [];
 
+		if (!$this->customer->isLogged() || (!isset($this->request->get['customer_token']) || !isset($this->session->data['customer_token']) || ($this->request->get['customer_token'] != $this->session->data['customer_token']))) {
+			$this->session->data['redirect'] = $this->url->link('account/affiliate', 'language=' . $this->config->get('config_language'));
+
+			$json['redirect'] = $this->url->link('account/login', 'language=' . $this->config->get('config_language'), true);
+		}
+
 		if (!$this->config->get('config_affiliate_status')) {
-			$json['redirect'] = $this->url->link('account/account', 'language=' . $this->config->get('config_language'));
+			$json['redirect'] = $this->url->link('account/account', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token'], true);
 		}
 
 		$keys = [
@@ -194,9 +207,9 @@ class Affiliate extends \Opencart\System\Engine\Controller {
 
 			foreach ($custom_fields as $custom_field) {
 				if ($custom_field['location'] == 'affiliate') {
-					if ($custom_field['required'] && empty($this->request->post['custom_field'][$custom_field['location']][$custom_field['custom_field_id']])) {
+					if ($custom_field['required'] && empty($this->request->post['custom_field'][$custom_field['custom_field_id']])) {
 						$json['error']['custom_field_' . $custom_field['custom_field_id']] = sprintf($this->language->get('error_custom_field'), $custom_field['name']);
-					} elseif (($custom_field['type'] == 'text') && !empty($custom_field['validation']) && !preg_match(html_entity_decode($custom_field['validation'], ENT_QUOTES, 'UTF-8'), $this->request->post['custom_field'][$custom_field['location']][$custom_field['custom_field_id']])) {
+					} elseif (($custom_field['type'] == 'text') && !empty($custom_field['validation']) && !preg_match(html_entity_decode($custom_field['validation'], ENT_QUOTES, 'UTF-8'), $this->request->post['custom_field'][$custom_field['custom_field_id']])) {
 						$json['error']['custom_field_' . $custom_field['custom_field_id']] = sprintf($this->language->get('error_regex'), $custom_field['name']);
 					}
 				}
@@ -225,7 +238,7 @@ class Affiliate extends \Opencart\System\Engine\Controller {
 
 			$this->session->data['success'] = $this->language->get('text_success');
 
-			$json['redirect'] = $this->url->link('account/affiliate', 'language=' . $this->config->get('config_language'), true);
+			$json['redirect'] = $this->url->link('account/affiliate', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token'], true);
 		}
 
 		$this->response->addHeader('Content-Type: application/json');

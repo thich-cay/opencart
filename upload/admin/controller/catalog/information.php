@@ -187,7 +187,7 @@ class Information extends \Opencart\System\Engine\Controller {
 			'href' => $this->url->link('catalog/information', 'user_token=' . $this->session->data['user_token'] . $url)
 		];
 
-		$data['save'] = $this->url->link('catalog/information|save', 'user_token=' . $this->session->data['user_token'] . $url);
+		$data['save'] = $this->url->link('catalog/information|save', 'user_token=' . $this->session->data['user_token']);
 		$data['back'] = $this->url->link('catalog/information', 'user_token=' . $this->session->data['user_token'] . $url);
 
 		if (isset($this->request->get['information_id'])) {
@@ -260,15 +260,15 @@ class Information extends \Opencart\System\Engine\Controller {
 			$data['information_seo_url'] = [];
 		}
 
+		$this->load->model('design/layout');
+
+		$data['layouts'] = $this->model_design_layout->getLayouts();
+
 		if (isset($this->request->get['information_id'])) {
 			$data['information_layout'] = $this->model_catalog_information->getLayouts($this->request->get['information_id']);
 		} else {
 			$data['information_layout'] = [];
 		}
-
-		$this->load->model('design/layout');
-
-		$data['layouts'] = $this->model_design_layout->getLayouts();
 
 		$data['user_token'] = $this->session->data['user_token'];
 

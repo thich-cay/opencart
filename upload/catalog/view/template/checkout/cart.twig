@@ -17,15 +17,9 @@
   <div class="row">
     {{ column_left }}
     <div id="content" class="col">
-
       {{ content_top }}
-      <h1>{{ heading_title }}
-        {% if weight %}
-          &nbsp;({{ weight }})
-        {% endif %}</h1>
-
-      {{ list }}
-
+      <h1>{{ heading_title }}{% if weight %} ({{ weight }}){% endif %}</h1>
+      <div id="shopping-cart">{{ list }}</div>
       {% if modules %}
         <h2>{{ text_next }}</h2>
         <p>{{ text_next_choice }}</p>
@@ -35,13 +29,11 @@
           {% endfor %}
         </div>
       {% endif %}
-
       <br/>
       <div class="d-inline-block pt-2 pd-2 w-100">
         <div class="float-start"><a href="{{ continue }}" class="btn btn-light">{{ button_shopping }}</a></div>
         <div class="float-end"><a href="{{ checkout }}" class="btn btn-primary">{{ button_checkout }}</a></div>
       </div>
-
       {{ content_bottom }}
     </div>
     {{ column_right }}

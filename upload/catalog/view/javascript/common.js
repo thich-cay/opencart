@@ -22,12 +22,12 @@ function getURLVar(key) {
     }
 }
 
-$(document).ready(function() {
+$(document).ready(function () {
     // tooltips on hover
     $('[data-toggle=\'tooltip\']').tooltip({container: 'body'});
 
     // Makes tooltips work on ajax generated content
-    $(document).ajaxStop(function() {
+    $(document).ajaxStop(function () {
         $('[data-toggle=\'tooltip\']').tooltip({container: 'body'});
     });
 
@@ -52,9 +52,9 @@ $(document).ready(function() {
     */
 });
 
-$(document).ready(function() {
+$(document).ready(function () {
     // Currency
-    $('#form-currency .dropdown-item').on('click', function(e) {
+    $('#form-currency .dropdown-item').on('click', function (e) {
         e.preventDefault();
 
         $('#form-currency input[name=\'code\']').val($(this).attr('href'));
@@ -63,7 +63,7 @@ $(document).ready(function() {
     });
 
     // Search
-    $('#search input[name=\'search\']').parent().find('button').on('click', function() {
+    $('#search input[name=\'search\']').parent().find('button').on('click', function () {
         var url = $('base').attr('href') + 'index.php?route=product/search&language=' + $(this).attr('data-lang');
 
         var value = $('header #search input[name=\'search\']').val();
@@ -75,14 +75,14 @@ $(document).ready(function() {
         location = url;
     });
 
-    $('#search input[name=\'search\']').on('keydown', function(e) {
+    $('#search input[name=\'search\']').on('keydown', function (e) {
         if (e.keyCode == 13) {
             $('header #search input[name=\'search\']').parent().find('button').trigger('click');
         }
     });
 
     // Menu
-    $('#menu .dropdown-menu').each(function() {
+    $('#menu .dropdown-menu').each(function () {
         var menu = $('#menu').offset();
         var dropdown = $(this).parent().offset();
 
@@ -94,7 +94,7 @@ $(document).ready(function() {
     });
 
     // Product List
-    $('#list-view').click(function() {
+    $('#list-view').click(function () {
         $('#content .product-grid > .clearfix').remove();
 
         $('#content .row > .product-grid').attr('class', 'product-layout product-list col-12');
@@ -106,15 +106,9 @@ $(document).ready(function() {
     });
 
     // Product Grid
-    $('#grid-view').click(function() {
+    $('#grid-view').click(function () {
         // What a shame bootstrap does not take into account dynamically loaded columns
-        if (cols == 2) {
-            $('#content .product-list').attr('class', 'product-layout product-grid');
-        } else if (cols == 1) {
-            $('#content .product-list').attr('class', 'product-layout product-grid');
-        } else {
-            $('#content .product-list').attr('class', 'product-layout product-grid');
-        }
+        $('#content .product-list').attr('class', 'product-layout product-grid');
 
         $('#list-view').removeClass('active');
         $('#grid-view').addClass('active');
@@ -131,7 +125,7 @@ $(document).ready(function() {
     }
 
     /* Agree to Terms */
-    $('body').on('click', '.modal-link', function(e) {
+    $('body').on('click', '.modal-link', function (e) {
         e.preventDefault();
 
         var element = this;
@@ -141,7 +135,7 @@ $(document).ready(function() {
         $.ajax({
             url: $(element).attr('href'),
             dataType: 'html',
-            success: function(html) {
+            success: function (html) {
                 $('body').append(html);
 
                 $('#modal-information').modal('show');
@@ -150,219 +144,35 @@ $(document).ready(function() {
     });
 
     // Cookie Policy
-    $('#cookie button').on('click', function() {
+    $('#cookie button').on('click', function () {
         var element = this;
 
         $.ajax({
             url: $(this).val(),
             type: 'get',
             dataType: 'json',
-            beforeSend: function() {
+            beforeSend: function () {
                 $(element).button('loading');
             },
-            complete: function() {
+            complete: function () {
                 $(element).button('reset');
             },
-            success: function(json) {
+            success: function (json) {
                 if (json['success']) {
-                    $('#cookie').fadeOut(400, function() {
+                    $('#cookie').fadeOut(400, function () {
                         $('#cookie').remove();
                     });
                 }
             },
-            error: function(xhr, ajaxOptions, thrownError) {
+            error: function (xhr, ajaxOptions, thrownError) {
                 console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
             }
         });
     });
 });
 
-// Cart add remove functions
-var cart = [];
-
-cart.add = function(product_id, quantity) {
-    $.ajax({
-        url: 'index.php?route=checkout/cart|add',
-        type: 'post',
-        data: 'product_id=' + product_id + '&quantity=' + (typeof (quantity) != 'undefined' ? quantity : 1),
-        dataType: 'json',
-        beforeSend: function() {
-            $('#cart > button').button('loading');
-        },
-        complete: function() {
-            $('#cart > button').button('reset');
-        },
-        success: function(json) {
-            $('.text-danger, .toast').remove();
-            $('.form-control').removeClass('is-invalid');
-
-            if (json['redirect']) {
-                location = json['redirect'];
-            }
-
-            if (json['success']) {
-                html = '<div class="toast">';
-                html += '  <div class="toast-body"><button type="button" class="btn-close" data-bs-dismiss="toast"></button> ' + json['success'] + '</div>';
-                html += '</div>';
-
-                $('#toast').prepend(html);
-
-                $('#toast .toast:first-child').toast({'delay': 3000});
-                $('#toast .toast:first-child').toast('show');
-
-                // Need to set timeout otherwise it wont update the total
-                $('#cart').parent().load('index.php?route=common/cart|info');
-            }
-        },
-        error: function(xhr, ajaxOptions, thrownError) {
-            console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
-        }
-    });
-};
-
-cart.update = function(key, quantity) {
-    $.ajax({
-        url: 'index.php?route=checkout/cart|edit',
-        type: 'post',
-        data: 'key=' + key + '&quantity=' + (typeof (quantity) != 'undefined' ? quantity : 1),
-        dataType: 'json',
-        beforeSend: function() {
-            $('#cart > button').button('loading');
-        },
-        complete: function() {
-            $('#cart > button').button('reset');
-        },
-        success: function(json) {
-            if (getURLVar('route') == 'checkout/cart' || getURLVar('route') == 'checkout/checkout') {
-                location = 'index.php?route=checkout/cart';
-            } else {
-                $('#cart').parent().load('index.php?route=common/cart|info');
-            }
-        },
-        error: function(xhr, ajaxOptions, thrownError) {
-            console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
-        }
-    });
-};
-
-cart.remove = function(key) {
-    $.ajax({
-        url: 'index.php?route=checkout/cart|remove',
-        type: 'post',
-        data: 'key=' + key,
-        dataType: 'json',
-        beforeSend: function() {
-            $('#cart > button').button('loading');
-        },
-        complete: function() {
-            $('#cart > button').button('reset');
-        },
-        success: function(json) {
-            if (getURLVar('route') == 'checkout/cart' || getURLVar('route') == 'checkout/checkout') {
-                location = 'index.php?route=checkout/cart';
-            } else {
-                $('#cart').parent().load('index.php?route=common/cart|info');
-            }
-        },
-        error: function(xhr, ajaxOptions, thrownError) {
-            console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
-        }
-    });
-};
-
-// Cart add remove functions
-var voucher = [];
-
-voucher.remove = function(key) {
-    $.ajax({
-        url: 'index.php?route=checkout/cart|remove',
-        type: 'post',
-        data: 'key=' + key,
-        dataType: 'json',
-        beforeSend: function() {
-            $('#cart > button').button('loading');
-        },
-        complete: function() {
-            $('#cart > button').button('reset');
-        },
-        success: function(json) {
-            if (getURLVar('route') == 'checkout/cart' || getURLVar('route') == 'checkout/checkout') {
-                location = 'index.php?route=checkout/cart';
-            } else {
-                $('#cart').parent().load('index.php?route=common/cart|info');
-            }
-        },
-        error: function(xhr, ajaxOptions, thrownError) {
-            alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
-        }
-    });
-};
-
-var wishlist = [];
-
-wishlist.add = function(product_id) {
-    $.ajax({
-        url: 'index.php?route=account/wishlist|add',
-        type: 'post',
-        data: 'product_id=' + product_id,
-        dataType: 'json',
-        success: function(json) {
-            $('.toast').remove();
-
-            if (json['redirect']) {
-                location = json['redirect'];
-            }
-
-            if (json['success']) {
-                html = '<div class="toast">';
-                html += '  <div class="toast-body"><button type="button" class="ml-2 mb-1 close float-right" data-bs-dismiss="toast"></button> ' + json['success'] + '</div>';
-                html += '</div>';
-
-                $('#toast').prepend(html);
-
-                $('#toast .toast:first-child').toast({'delay': 3000});
-                $('#toast .toast:first-child').toast('show');
-            }
-
-            $('#wishlist-total span').html(json['total']);
-            $('#wishlist-total').attr('title', json['total']);
-        },
-        error: function(xhr, ajaxOptions, thrownError) {
-            console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
-        }
-    });
-};
-
-var compare = [];
-
-compare.add = function(product_id) {
-    $.ajax({
-        url: 'index.php?route=product/compare|add',
-        type: 'post',
-        data: 'product_id=' + product_id,
-        dataType: 'json',
-        success: function(json) {
-            if (json['success']) {
-                html = '<div class="toast">';
-                html += '  <div class="toast-body"><button type="button" class="ml-2 mb-1 close float-right" data-bs-dismiss="toast"></button> ' + json['success'] + '</div>';
-                html += '</div>';
-
-                $('#toast').prepend(html);
-
-                $('#toast .toast:first-child').toast({'delay': 3000});
-                $('#toast .toast:first-child').toast('show');
-
-                $('#compare-total').html(json['total']);
-            }
-        },
-        error: function(xhr, ajaxOptions, thrownError) {
-            console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
-        }
-    });
-};
-
 // Forms
-$(document).on('submit', '[data-oc-toggle=\'ajax\']', function(e) {
+$(document).on('submit', 'form[data-oc-toggle=\'ajax\']', function (e) {
     e.preventDefault();
 
     var element = this;
@@ -375,50 +185,56 @@ $(document).on('submit', '[data-oc-toggle=\'ajax\']', function(e) {
 
     var formaction = $(button).attr('formaction');
 
-    if (typeof formaction == undefined) {
+    if (formaction !== undefined) {
         action = formaction;
     }
 
     var method = $(form).attr('method');
 
-    if (typeof method == undefined) {
+    if (method === undefined) {
         method = 'post';
     }
 
     var enctype = $(element).attr('enctype');
 
-    if (typeof enctype == undefined) {
+    if (enctype === undefined) {
         enctype = 'application/x-www-form-urlencoded';
     }
 
+    // https://github.com/opencart/opencart/issues/9690
+    if (typeof CKEDITOR != 'undefined') {
+        for (instance in CKEDITOR.instances) {
+            CKEDITOR.instances[instance].updateElement();
+        }
+    }
+
     console.log(e);
-    console.log(element);
-    console.log(action);
-    console.log(button);
-    console.log(formaction);
-    console.log(method);
-    console.log(enctype);
+    console.log('element ' + element);
+    console.log('action ' + action);
+    console.log('button ' + button);
+    console.log('formaction ' + formaction);
+    console.log('method ' + method);
+    console.log('enctype ' + enctype);
 
     $.ajax({
         url: action,
         type: method,
-        dataType: 'json',
         data: $(form).serialize(),
+        dataType: 'json',
         cache: false,
         contentType: enctype,
         processData: false,
-        beforeSend: function() {
+        beforeSend: function () {
             $(element).button('loading');
         },
-        complete: function() {
+        complete: function () {
             $(element).button('reset');
         },
-        success: function(json) {
+        success: function (json) {
             $(form).find('.is-invalid').removeClass('is-invalid');
             $(form).find('.invalid-feedback').removeClass('d-block');
 
             console.log(json);
-            console.log(json['error']);
 
             if (json['redirect']) {
                 location = json['redirect'];
@@ -448,95 +264,95 @@ $(document).on('submit', '[data-oc-toggle=\'ajax\']', function(e) {
             }
 
             if (json['success']) {
-                $(form).after('<div class="alert alert-success alert-dismissible"><i class="fas fa-check-circle"></i> ' + json['success'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+                $('#alert').prepend('<div class="alert alert-success"><i class="fas fa-exclamation-circle"></i> ' + json['success'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
 
                 // Refresh
                 var url = $(form).attr('data-oc-load');
                 var target = $(form).attr('data-oc-target');
 
-                if (typeof url !== typeof undefined && typeof target !== typeof undefined) {
+                if (url !== undefined && target !== undefined) {
                     $(target).load(url);
                 }
 
                 delete json['success'];
             }
 
+            // Replace any form values that correspond to form names.
             for (key in json) {
                 $(form).find('[name=\'' + key + '\']').val(json[key]);
             }
         },
-        error: function(xhr, ajaxOptions, thrownError) {
+        error: function (xhr, ajaxOptions, thrownError) {
             console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
         }
     });
 });
 
 // Upload
-$(document).on('click', '[data-oc-toggle=\'upload\']', function() {
+$(document).on('click', 'button[data-oc-toggle=\'upload\']', function () {
     var element = this;
-    var target = $(element).attr('data-oc-target');
 
-    $('#form-upload').remove();
+    if (!$(element).prop('disabled')) {
+        $('#form-upload').remove();
 
-    $('body').prepend('<form enctype="multipart/form-data" id="form-upload" style="display: none;"><input type="file" name="file" /></form>');
+        $('body').prepend('<form enctype="multipart/form-data" id="form-upload" style="display: none;"><input type="file" name="file" value=""/></form>');
 
-    $('#form-upload input[name=\'file\']').trigger('click');
+        $('#form-upload input[name=\'file\']').trigger('click');
 
-    $('#form-upload input[name=\'file\']').on('change', function() {
-        if (this.files[0].size > 0) {
-            //$(this).val('');
+        var size = $(element).attr('data-oc-size-max');
 
-            //alert('');
-        }
-    });
+        $('#form-upload input[name=\'file\']').on('change', function (e) {
+            if (this.files[0].size > size) {
+                alert($(element).attr('data-oc-size-error'));
 
-    if (typeof timer != 'undefined') {
-        clearInterval(timer);
-    }
+                $(this).val('');
+            }
+        });
 
-    timer = setInterval(function() {
-        if ($('#form-upload input[name=\'file\']').val() != '') {
+        if (typeof timer !== 'undefined') {
             clearInterval(timer);
-
-            $.ajax({
-                url: $(element).attr('data-oc-url'),
-                type: 'post',
-                dataType: 'json',
-                data: new FormData($('#form-upload')[0]),
-                cache: false,
-                contentType: false,
-                processData: false,
-                beforeSend: function() {
-                    $(element).button('loading');
-                },
-                complete: function() {
-                    $(element).button('reset');
-                },
-                success: function(json) {
-                    console.log(json);
-
-                    $(element).parent().find('.invalid-tooltip').remove();
-
-                    if (json['error']) {
-                        $(element).after('<div class="invalid-tooltip d-block">' + json['error'] + '</div>');
-                    }
-
-                    if (json['success']) {
-                        $('#alert').prepend('<div class="alert alert-success"><i class="fas fa-exclamation-circle"></i> ' + json['success'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
-
-                        delete json['success'];
-                    }
-
-                    if (json['code']) {
-                        $(target).attr('value', json['code']);
-                    }
-                },
-                error: function(xhr, ajaxOptions, thrownError) {
-                    console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
-                }
-            });
         }
-    }, 500);
+
+        var timer = setInterval(function () {
+            if ($('#form-upload input[name=\'file\']').val() != '') {
+                clearInterval(timer);
+
+                $.ajax({
+                    url: $(element).attr('data-oc-url'),
+                    type: 'post',
+                    data: new FormData($('#form-upload')[0]),
+                    dataType: 'json',
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    beforeSend: function () {
+                        $(element).button('loading');
+                    },
+                    complete: function () {
+                        $(element).button('reset');
+                    },
+                    success: function (json) {
+                        console.log(json);
+
+                        if (json['error']) {
+                            alert(json['error']);
+                        }
+
+                        if (json['success']) {
+                            alert(json['success']);
+                        }
+
+                        if (json['code']) {
+                            $($(element).attr('data-oc-target')).attr('value', json['code']);
+                        }
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+                    }
+                });
+            }
+        }, 500);
+    }
 });
 
 // Chain ajax calls.
@@ -558,7 +374,7 @@ class Chain {
         if (this.data.length) {
             this.start = true;
 
-            (this.data.shift())().done(function() {
+            (this.data.shift())().done(function () {
                 chain.execute();
             });
         } else {
@@ -574,18 +390,13 @@ var chain = new Chain();
     $.fn.autocomplete = function(option) {
         return this.each(function() {
             var $this = $(this);
-            var $dropdown = $('<div class="dropdown-menu"/>');
+            var $menu = $('<div class="dropdown d-block">');
+            var $dropdown = $('<ul class="dropdown-menu"></ul>');
 
             this.timer = null;
             this.items = [];
 
             $.extend(this, option);
-
-            if (!$(this).parent().hasClass('input-group')) {
-                $(this).wrap('<div class="dropdown">');
-            } else {
-                $(this).parent().wrap('<div class="dropdown">');
-            }
 
             $this.attr('autocomplete', 'off');
             $this.active = false;
@@ -668,7 +479,7 @@ var chain = new Chain();
 
                         if (!json[i]['category']) {
                             // ungrouped items
-                            html += '<a href="' + json[i]['value'] + '" class="dropdown-item">' + json[i]['label'] + '</a>';
+                            html += '<li><a href="' + json[i]['value'] + '" class="dropdown-item">' + json[i]['label'] + '</a></li>';
                         } else {
                             // grouped items
                             name = json[i]['category'];
@@ -682,10 +493,10 @@ var chain = new Chain();
                     }
 
                     for (name in category) {
-                        html += '<h6 class="dropdown-header">' + name + '</h6>';
+                        html += '<li><h6 class="dropdown-header">' + name + '</h6></li>';
 
                         for (j = 0; j < category[name].length; j++) {
-                            html += '<a href="' + category[name][j]['value'] + '" class="dropdown-item">&nbsp;&nbsp;&nbsp;' + category[name][j]['label'] + '</a>';
+                            html += '<li><a href="' + category[name][j]['value'] + '" class="dropdown-item">&nbsp;&nbsp;&nbsp;' + category[name][j]['label'] + '</a></li>';
                         }
                     }
                 }
@@ -699,120 +510,13 @@ var chain = new Chain();
                 $dropdown.html(html);
             }
 
-            $dropdown.on('click', '> a', $.proxy(this.click, this));
+            if (!$this.parent().hasClass('input-group')) {
+                $this.after($menu.append($dropdown));
+            } else {
+                $this.parent().after($menu.append($dropdown));
+            }
 
-            $this.after($dropdown);
+            $dropdown.on('click', 'a', $.proxy(this.click, this));
         });
     }
 })(window.jQuery);
-
-+function($) {
-    'use strict';
-
-    // BUTTON PUBLIC CLASS DEFINITION
-    // ==============================
-
-    var Button = function(element, options) {
-        this.$element = $(element)
-        this.options = $.extend({}, Button.DEFAULTS, options)
-        this.isLoading = false
-    }
-
-    Button.VERSION = '3.3.5'
-
-    Button.DEFAULTS = {
-        loadingText: 'loading...'
-    }
-
-    Button.prototype.setState = function(state) {
-        var d = 'disabled'
-        var $el = this.$element
-        var val = $el.is('input') ? 'val' : 'html'
-        var data = $el.data()
-
-        state += 'Text'
-
-        if (data.resetText == null) $el.data('resetText', $el[val]())
-
-        // push to event loop to allow forms to submit
-        setTimeout($.proxy(function() {
-            $el[val](data[state] == null ? this.options[state] : data[state])
-
-            if (state == 'loadingText') {
-                this.isLoading = true
-                $el.addClass(d).attr(d, d)
-            } else if (this.isLoading) {
-                this.isLoading = false
-                $el.removeClass(d).removeAttr(d)
-            }
-        }, this), 0)
-    }
-
-    Button.prototype.toggle = function() {
-        var changed = true
-        var $parent = this.$element.closest('[data-oc-toggle="buttons"]')
-
-        if ($parent.length) {
-            var $input = this.$element.find('input')
-            if ($input.prop('type') == 'radio') {
-                if ($input.prop('checked')) changed = false
-                $parent.find('.active').removeClass('active')
-                this.$element.addClass('active')
-            } else if ($input.prop('type') == 'checkbox') {
-                if (($input.prop('checked')) !== this.$element.hasClass('active')) changed = false
-                this.$element.toggleClass('active')
-            }
-            $input.prop('checked', this.$element.hasClass('active'))
-            if (changed) $input.trigger('change')
-        } else {
-            this.$element.attr('aria-pressed', !this.$element.hasClass('active'))
-            this.$element.toggleClass('active')
-        }
-    }
-
-    // BUTTON PLUGIN DEFINITION
-    // ========================
-
-    function Plugin(option) {
-        return this.each(function() {
-            var $this = $(this)
-            var data = $this.data('bs.button')
-            var options = typeof option == 'object' && option
-
-            if (!data) $this.data('bs.button', (data = new Button(this, options)))
-
-            if (option == 'toggle') data.toggle()
-            else if (option) data.setState(option)
-        })
-    }
-
-    var old = $.fn.button
-
-    $.fn.button = Plugin
-    $.fn.button.Constructor = Button
-
-
-    // BUTTON NO CONFLICT
-    // ==================
-
-    $.fn.button.noConflict = function() {
-        $.fn.button = old
-        return this
-    }
-
-
-    // BUTTON DATA-API
-    // ===============
-
-    $(document).on('click.bs.button.data-api', '[data-toggle^="button"]', function(e) {
-        var $btn = $(e.target);
-
-        if (!$btn.hasClass('btn')) $btn = $btn.closest('.btn');
-
-        Plugin.call($btn, 'toggle');
-
-        if (!($(e.target).is('input[type="radio"]') || $(e.target).is('input[type="checkbox"]'))) e.preventDefault();
-    }).on('focus.bs.button.data-api blur.bs.button.data-api', '[data-toggle^="button"]', function(e) {
-        $(e.target).closest('.btn').toggleClass('focus', /^focus(in)?$/.test(e.type));
-    });
-}(jQuery);

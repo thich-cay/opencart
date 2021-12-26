@@ -235,7 +235,11 @@ class Product extends \Opencart\System\Engine\Controller {
 
 			$data['error_upload_size'] = sprintf($this->language->get('error_upload_size'), $this->config->get('config_file_max_size'));
 
-			$data['config_file_max_size'] = $this->config->get('config_file_max_size');
+			$data['config_file_max_size'] = ((int)$this->config->get('config_file_max_size') * 1000);
+
+			$data['upload'] = $this->url->link('tool/upload', 'language=' . $this->config->get('config_language'));
+
+			$data['language'] = $this->config->get('config_language');
 
 			$data['product_id'] = (int)$this->request->get['product_id'];
 			$data['manufacturer'] = $product_info['manufacturer'];
@@ -570,7 +574,7 @@ class Product extends \Opencart\System\Engine\Controller {
 		$product_info = $this->model_catalog_product->getProduct($product_id);
 
 		if (!$product_info) {
-			$json['error'] = $this->language->get('error_product');
+			$json['error'] = $this->language->get('error_recurring');
 		}
 
 		$recurring_info = $this->model_catalog_product->getProfile($product_id, $recurring_id);

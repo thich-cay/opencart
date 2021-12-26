@@ -144,22 +144,8 @@ $(document).ready(function() {
     });
 });
 
-var oc = [];
-
-oc.alert = function(type, message) {
-    $('#alert').prepend('<div class="alert alert-' + type + '"><i class="fas fa-exclamation-circle"></i> ' + message + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
-}
-
-oc.error = function(key, message) {
-    // Highlight error fields
-    $('#input-' + key.replaceAll('_', '-')).addClass('is-invalid').find('.form-control, .form-select, .form-check-input, .form-check-label').addClass('is-invalid');
-
-    // Show errors
-    $('#error-' + key.replaceAll('_', '-')).html(message).addClass('d-block');
-}
-
 // Forms
-$(document).submit('form[data-oc-toggle=\'ajax\']', function(e) {
+$(document).on('submit', 'form[data-oc-toggle=\'ajax\']', function(e) {
     e.preventDefault();
 
     var element = this;
@@ -172,19 +158,19 @@ $(document).submit('form[data-oc-toggle=\'ajax\']', function(e) {
 
     var formaction = $(button).attr('formaction');
 
-    if (typeof formaction != 'undefined') {
+    if (formaction !== undefined) {
         action = formaction;
     }
 
     var method = $(form).attr('method');
 
-    if (typeof method == 'undefined') {
+    if (method === undefined) {
         method = 'post';
     }
 
     var enctype = $(element).attr('enctype');
 
-    if (typeof enctype == 'undefined') {
+    if (typeof enctype === undefined) {
         enctype = 'application/x-www-form-urlencoded';
     }
 
@@ -195,24 +181,20 @@ $(document).submit('form[data-oc-toggle=\'ajax\']', function(e) {
         }
     }
 
-    /*
     console.log(e);
-    console.log(element);
-    console.log(action);
-    console.log(button);
-    console.log(formaction);
-    console.log(method);
-    console.log(enctype);
-    */
+    console.log('element ' + element);
+    console.log('action ' + action);
+    console.log('button ' + button);
+    console.log('formaction ' + formaction);
+    console.log('method ' + method);
+    console.log('enctype ' + enctype);
 
     $.ajax({
         url: action,
         type: method,
         data: $(form).serialize(),
         dataType: 'json',
-        cache: false,
         contentType: enctype,
-        processData: false,
         beforeSend: function() {
             $(button).button('loading');
         },
@@ -223,8 +205,7 @@ $(document).submit('form[data-oc-toggle=\'ajax\']', function(e) {
             $(element).find('.is-invalid').removeClass('is-invalid');
             $(element).find('.invalid-feedback').removeClass('d-block');
 
-           // console.log(json['error']);
-           console.log(json);
+            console.log(json);
 
             if (json['redirect']) {
                 location = json['redirect'];
@@ -244,26 +225,26 @@ $(document).submit('form[data-oc-toggle=\'ajax\']', function(e) {
 
                 if (json['error']['warning']) {
                     $('#alert').prepend('<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ' + json['error']['warning'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+
+                    delete json['error']['warning'];
                 }
 
                 for (key in json['error']) {
-                    for (key in json['error']) {
-                        $('#input-' + key.replaceAll('_', '-')).addClass('is-invalid').find('.form-control, .form-select, .form-check-input, .form-check-label').addClass('is-invalid');
-                        $('#error-' + key.replaceAll('_', '-')).html(json['error'][key]).addClass('d-block');
-                    }
+                    $('#input-' + key.replaceAll('_', '-')).addClass('is-invalid').find('.form-control, .form-select, .form-check-input, .form-check-label').addClass('is-invalid');
+                    $('#error-' + key.replaceAll('_', '-')).html(json['error'][key]).addClass('d-block');
                 }
 
                 delete json['error'];
             }
 
             if (json['success']) {
-                $('#alert').prepend('<div class="alert alert-success"><i class="fas fa-exclamation-circle"></i> ' + json['success'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+                $('#alert').prepend('<div class="alert alert-success"><i class="fas fa-check-circle"></i> ' + json['success'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
 
-                // Refreshv
+                // Refresh
                 var url = $(form).attr('data-oc-load');
                 var target = $(form).attr('data-oc-target');
 
-                if (url !== typeof undefined && target !== typeof undefined) {
+                if (url !== undefined && target !== undefined) {
                    $(target).load(url);
                 }
 
@@ -276,80 +257,76 @@ $(document).submit('form[data-oc-toggle=\'ajax\']', function(e) {
             }
         },
         error: function(xhr, ajaxOptions, thrownError) {
-           // oc.alert('danger', thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
-           // console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+            console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
         }
     });
-
-
 });
 
 // Upload
 $(document).on('click', '[data-oc-toggle=\'upload\']', function() {
     var element = this;
 
-    var target = $(element).attr('data-oc-target');
+    if (!$(element).prop('disabled')) {
+        $('#form-upload').remove();
 
-    $('#form-upload').remove();
+        $('body').prepend('<form enctype="multipart/form-data" id="form-upload" style="display: none;"><input type="file" name="file" value=""/></form>');
 
-    $('body').prepend('<form enctype="multipart/form-data" id="form-upload" style="display: none;"><input type="file" name="file" /></form>');
+        $('#form-upload input[name=\'file\']').trigger('click');
 
-    $('#form-upload input[name=\'file\']').trigger('click');
+        var size = $(element).attr('data-oc-size-max');
 
-    $('#form-upload input[name=\'file\']').on('change', function() {
-        if (this.files[0].size > 0) {
-            //$(this).val('');
+        $('#form-upload input[name=\'file\']').on('change', function(e) {
+            if (this.files[0].size > size) {
+                alert($(element).attr('data-oc-size-error'));
 
-            //alert('');
-        }
-    });
+                $(this).val('');
+            }
+        });
 
-    if (typeof timer != 'undefined') {
-        clearInterval(timer);
-    }
-
-    timer = setInterval(function() {
-        if ($('#form-upload input[name=\'file\']').val() != '') {
+        if (typeof timer != 'undefined') {
             clearInterval(timer);
+        }
 
-            $.ajax({
-                url: $(element).attr('data-oc-upload'),
-                type: 'post',
-                dataType: 'json',
-                data: new FormData($('#form-upload')[0]),
-                cache: false,
-                contentType: false,
-                processData: false,
-                beforeSend: function() {
-                    $(element).button('loading');
-                },
-                complete: function() {
-                    $(element).button('reset');
-                },
-                success: function(json) {
-                    console.log(json);
+       var timer = setInterval(function() {
+            if ($('#form-upload input[name=\'file\']').val() != '') {
+               clearInterval(timer);
 
-                    $(element).parent().find('.invalid-feedback').remove();
+                $.ajax({
+                    url: $(element).attr('data-oc-url'),
+                    type: 'post',
+                    data: new FormData($('#form-upload')[0]),
+                    dataType: 'json',
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    beforeSend: function() {
+                        $(element).button('loading');
+                    },
+                    complete: function() {
+                        $(element).button('reset');
+                    },
+                    success: function(json) {
+                        console.log(json);
 
-                    if (json['error']) {
-                        $(element).after('<div class="invalid-feedback show">' + json['error'] + '</div>');
-                    }
+                        if (json['error']) {
+                            alert(json['error']);
+                        }
 
-                    if (json['success']) {
-                        $('#alert').prepend('<div class="alert alert-success"><i class="fas fa-exclamation-circle"></i> ' + json['success'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+                        if (json['success']) {
+                            alert(json['success']);
+                        }
 
                         if (json['code']) {
-                            $(target).attr('value', json['code']);
+                            $($(element).attr('data-oc-target')).attr('value', json['code']);
                         }
+                    },
+                    error: function(xhr, ajaxOptions, thrownError) {
+                        console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
                     }
-                },
-                error: function(xhr, ajaxOptions, thrownError) {
-                    oc.alert('danger', thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
-                    console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
-                }
-            });
-        }
-    }, 500);
+                });
+            }
+        }, 500);
+    }
 });
 
 // Image Manager
@@ -357,16 +334,6 @@ $(document).on('click', '[data-oc-toggle=\'image\']', function(e) {
     e.preventDefault();
 
     var element = this;
-
-    console.log(element);
-
-    // var test = document.querySelector('#modal-image');
-
-    // var modal = new bootstrap.Modal(test);
-
-    //  if () {
-    //     $('#modal-image').remove();
-    //  }
 
     $.ajax({
         url: 'index.php?route=common/filemanager&user_token=' + getURLVar('user_token') + '&target=' + encodeURIComponent($(this).attr('data-oc-target')) + '&thumb=' + encodeURIComponent($(this).attr('data-oc-thumb')),
@@ -432,18 +399,13 @@ var chain = new Chain();
     $.fn.autocomplete = function(option) {
         return this.each(function() {
             var $this = $(this);
-            var $dropdown = $('<div class="dropdown-menu"/>');
+            var $menu = $('<div class="dropdown d-block">');
+            var $dropdown = $('<ul class="dropdown-menu"></ul>');
 
             this.timer = null;
             this.items = [];
 
             $.extend(this, option);
-
-            if (!$(this).parent().hasClass('input-group')) {
-                $(this).wrap('<div class="dropdown">');
-            } else {
-                $(this).parent().wrap('<div class="dropdown">');
-            }
 
             $this.attr('autocomplete', 'off');
             $this.active = false;
@@ -469,8 +431,8 @@ var chain = new Chain();
             });
 
             // Keydown
-            $this.on('keydown', function(event) {
-                switch (event.keyCode) {
+            $this.on('keydown', function(e) {
+                switch (e.keyCode) {
                     case 27: // escape
                         this.hide();
                         break;
@@ -481,10 +443,10 @@ var chain = new Chain();
             });
 
             // Click
-            this.click = function(event) {
-                event.preventDefault();
+            this.click = function(e) {
+                e.preventDefault();
 
-                var value = $(event.target).attr('href');
+                var value = $(e.target).attr('href');
 
                 if (value && this.items[value]) {
                     this.select(this.items[value]);
@@ -526,7 +488,7 @@ var chain = new Chain();
 
                         if (!json[i]['category']) {
                             // ungrouped items
-                            html += '<a href="' + json[i]['value'] + '" class="dropdown-item">' + json[i]['label'] + '</a>';
+                            html += '<li><a href="' + json[i]['value'] + '" class="dropdown-item">' + json[i]['label'] + '</a></li>';
                         } else {
                             // grouped items
                             name = json[i]['category'];
@@ -540,10 +502,10 @@ var chain = new Chain();
                     }
 
                     for (name in category) {
-                        html += '<h6 class="dropdown-header">' + name + '</h6>';
+                        html += '<li><h6 class="dropdown-header">' + name + '</h6></li>';
 
                         for (j = 0; j < category[name].length; j++) {
-                            html += '<a href="' + category[name][j]['value'] + '" class="dropdown-item">&nbsp;&nbsp;&nbsp;' + category[name][j]['label'] + '</a>';
+                            html += '<li><a href="' + category[name][j]['value'] + '" class="dropdown-item">&nbsp;&nbsp;&nbsp;' + category[name][j]['label'] + '</a></li>';
                         }
                     }
                 }
@@ -557,9 +519,13 @@ var chain = new Chain();
                 $dropdown.html(html);
             }
 
-            $dropdown.on('click', '> a', $.proxy(this.click, this));
+            if (!$this.parent().hasClass('input-group')) {
+                $this.after($menu.append($dropdown));
+            } else {
+                $this.parent().after($menu.append($dropdown));
+            }
 
-            $this.after($dropdown);
+            $dropdown.on('click', 'a', $.proxy(this.click, this));
         });
     }
-})(jQuery);
+})(window.jQuery);

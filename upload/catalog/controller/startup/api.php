@@ -2,6 +2,10 @@
 namespace Opencart\Catalog\Controller\Startup;
 class Api extends \Opencart\System\Engine\Controller {
 	public function index(): void {
+		$this->load->language('api/login');
+
+		$json = [];
+
 		if (isset($this->request->get['route'])) {
 			$route = (string)$this->request->get['route'];
 		} else {
@@ -20,5 +24,8 @@ class Api extends \Opencart\System\Engine\Controller {
 				$json['error'] = $this->language->get('error_permission');
 			}
 		}
+
+		$this->response->addHeader('Content-Type: application/json');
+		$this->response->setOutput(json_encode($json));
 	}
 }

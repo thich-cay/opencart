@@ -116,6 +116,7 @@
         {% endif %}
 
         <div class="{{ class }}">
+
           <div class="btn-group">
             <button type="button" data-bs-toggle="tooltip" class="btn btn-light" title="{{ button_wishlist }}" onclick="wishlist.add('{{ product_id }}');"><i class="fas fa-heart"></i></button>
             <button type="button" data-bs-toggle="tooltip" class="btn btn-light" title="{{ button_compare }}" onclick="compare.add('{{ product_id }}');"><i class="fas fa-exchange-alt"></i></button>
@@ -167,7 +168,6 @@
             <hr>
               <h3>{{ text_option }}</h3>
               <div>
-
                 {% for option in options %}
 
                   {% if option.type == 'select' %}
@@ -228,14 +228,16 @@
 
                   {% if option.type == 'text' %}
                     <div class="mb-3{% if option.required %} required{% endif %}">
-                      <label for="input-option-{{ option.product_option_id }}" class="form-label">{{ option.name }}</label> <input type="text" name="option[{{ option.product_option_id }}]" value="{{ option.value }}" placeholder="{{ option.name }}" id="input-option-{{ option.product_option_id }}" class="form-control"/>
+                      <label for="input-option-{{ option.product_option_id }}" class="form-label">{{ option.name }}</label>
+                      <input type="text" name="option[{{ option.product_option_id }}]" value="{{ option.value }}" placeholder="{{ option.name }}" id="input-option-{{ option.product_option_id }}" class="form-control"/>
                       <div id="error-option-{{ option.product_option_id }}" class="invalid-feedback"></div>
                     </div>
                   {% endif %}
 
                   {% if option.type == 'textarea' %}
                     <div class="mb-3{% if option.required %} required{% endif %}">
-                      <label for="input-option-{{ option.product_option_id }}" class="form-label">{{ option.name }}</label> <textarea name="option[{{ option.product_option_id }}]" rows="5" placeholder="{{ option.name }}" id="input-option-{{ option.product_option_id }}" class="form-control">{{ option.value }}</textarea>
+                      <label for="input-option-{{ option.product_option_id }}" class="form-label">{{ option.name }}</label>
+                      <textarea name="option[{{ option.product_option_id }}]" rows="5" placeholder="{{ option.name }}" id="input-option-{{ option.product_option_id }}" class="form-control">{{ option.value }}</textarea>
                       <div id="error-option-{{ option.product_option_id }}" class="invalid-feedback"></div>
                     </div>
                   {% endif %}
@@ -244,7 +246,7 @@
                     <div class="mb-3{% if option.required %} required{% endif %}">
                       <label for="button-upload-{{ option.product_option_id }}" class="form-label">{{ option.name }}</label>
                       <div>
-                        <button type="button" id="button-upload-{{ option.product_option_id }}" data-loading-text="{{ text_loading }}" class="btn btn-light btn-block"><i class="fas fa-upload"></i> {{ button_upload }}</button>
+                        <button type="button" id="button-upload-{{ option.product_option_id }}" data-loading-text="{{ text_loading }}" data-oc-toggle="upload" data-oc-size-max="{{ config_file_max_size }}" data-oc-size-error="{{ error_upload_size }}" data-oc-url="{{ upload }}" data-oc-target="#input-option-{{ option.product_option_id }}" class="btn btn-light btn-block"><i class="fas fa-upload"></i> {{ button_upload }}</button>
                         <input type="hidden" name="option[{{ option.product_option_id }}]" value="" id="input-option-{{ option.product_option_id }}"/>
                       </div>
                       <div id="error-option-{{ option.product_option_id }}" class="invalid-feedback"></div>
@@ -302,10 +304,11 @@
                 {% endif %}
 
                 <div class="mb-3">
-                  <label for="input-quantity" class="form-label">{{ entry_qty }}</label> <input type="text" name="quantity" value="{{ minimum }}" size="2" id="input-quantity" class="form-control"/> <input type="hidden" name="product_id" value="{{ product_id }}" id="input-product-id"/>
+                  <label for="input-quantity" class="form-label">{{ entry_qty }}</label>
+                  <input type="text" name="quantity" value="{{ minimum }}" size="2" id="input-quantity" class="form-control"/> <input type="hidden" name="product_id" value="{{ product_id }}" id="input-product-id"/>
                   <div id="error-quantity" class="form-text"></div>
                   <br/>
-                  <button type="button" id="button-cart" data-loading-text="{{ text_loading }}" class="btn btn-primary btn-lg btn-block">{{ button_cart }}</button>
+                  <button type="submit" id="button-cart" data-loading-text="{{ text_loading }}" class="btn btn-primary btn-lg btn-block">{{ button_cart }}</button>
                 </div>
                 {% if minimum > 1 %}
                   <div class="alert alert-info"><i class="fas fa-info-circle"></i> {{ text_minimum }}</div>
@@ -314,10 +317,7 @@
 
               {% if review_status %}
                 <div class="rating">
-                  <p>{% for i in 1..5 %}
-                      {% if rating < i %}<span class="fas fa-stack"><i class="far fa-star fa-stack-1x"></i></span>{% else %}<span class="fas fa-stack"><i class="fas fa-star fa-stack-1x"></i><i class="far fa-star fa-stack-1x"></i></span>{% endif %}
-                    {% endfor %}
-                    <a href="" onclick="$('a[href=\'#tab-review\']').trigger('click'); return false;">{{ reviews }}</a> / <a href="" onclick="$('a[href=\'#tab-review\']').trigger('click'); return false;">{{ text_write }}</a></p>
+                  <p>{% for i in 1..5 %}{% if rating < i %}<span class="fas fa-stack"><i class="far fa-star fa-stack-1x"></i></span>{% else %}<span class="fas fa-stack"><i class="fas fa-star fa-stack-1x"></i><i class="far fa-star fa-stack-1x"></i></span>{% endif %}{% endfor %} <a href="" onclick="$('a[href=\'#tab-review\']').trigger('click'); return false;">{{ reviews }}</a> / <a href="" onclick="$('a[href=\'#tab-review\']').trigger('click'); return false;">{{ text_write }}</a></p>
                 </div>
               {% endif %}
 
@@ -357,8 +357,11 @@ $('#input-recurring, #input-quantity').change(function() {
     $.ajax({
         url: 'index.php?route=product/product|getRecurringDescription',
         type: 'post',
-        data: $('#input-product-id, #input-quantity, #input-recurring'),
         dataType: 'json',
+        data: $('#input-product-id, #input-quantity, #input-recurring'),
+        contentType: 'application/x-www-form-urlencoded',
+        cache: false,
+        processData: false,
         beforeSend: function() {
             $('#recurring-description').html('');
         },
@@ -370,16 +373,17 @@ $('#input-recurring, #input-quantity').change(function() {
     });
 });
 
-$('#button-cart').on('click', function() {
-    var test = $('#form-product').serialize();
-
-    console.log(test);
+$('#form-product').on('submit', function(e) {
+    e.preventDefault();
 
     $.ajax({
-        url: 'index.php?route=checkout/cart|add',
+        url: 'index.php?route=checkout/cart|add&language={{ language }}',
         type: 'post',
         dataType: 'json',
-        data: test,
+        data: $('#form-product').serialize(),
+        contentType: 'application/x-www-form-urlencoded',
+        cache: false,
+        processData: false,
         beforeSend: function() {
             $('#button-cart').button('loading');
         },
@@ -387,27 +391,20 @@ $('#button-cart').on('click', function() {
             $('#button-cart').button('reset');
         },
         success: function(json) {
-            console.log(json);
-
-            $('.form-invalid').hide();
-
             $('#form-product').find('.is-invalid').removeClass('is-invalid');
+            $('#form-product').find('.invalid-feedback').removeClass('d-block');
+
+            console.log(json);
 
             if (json['error']) {
                 for (key in json['error']) {
-                    oc.error(key, json['error'][key]);
+                    $('#input-' + key.replaceAll('_', '-')).addClass('is-invalid').find('.form-control, .form-select, .form-check-input, .form-check-label').addClass('is-invalid');
+                    $('#error-' + key.replaceAll('_', '-')).html(json['error'][key]).addClass('d-block');
                 }
             }
 
             if (json['success']) {
-                html = '<div class="toast">';
-                html += '  <div class="toast-body"><button type="button" class="ml-2 mb-1 btn-close float-end" data-bs-dismiss="toast"></button> ' + json['success'] + '</div>';
-                html += '</div>';
-
-                $('#toast').prepend(html);
-
-                $('#toast .toast:first-child').toast({'delay': 3000});
-                $('#toast .toast:first-child').toast('show');
+                $('#alert').prepend('<div class="alert alert-success alert-dismissible"><i class="fas fa-check-circle"></i> ' + json['success'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
 
                 $('#cart').parent().load('index.php?route=common/cart|info');
             }
@@ -416,7 +413,6 @@ $('#button-cart').on('click', function() {
             console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
         }
     });
-
 });
 
 $('.date').datetimepicker({
@@ -437,7 +433,7 @@ $('.datetime').datetimepicker({
     'allowInputToggle': true
 });
 
-$('#review').delegate('.pagination a', 'click', function(e) {
+$('#review').on('click', '.pagination a', function(e) {
     e.preventDefault();
 
     $('#review').fadeOut('slow');
@@ -465,10 +461,9 @@ $('#button-review').on('click', function() {
             $('.alert-dismissible').remove();
 
             if (json['error']) {
-                $('#form-review').after('<div class="alert alert-danger alert-dismissible"><i class="fas fa-exclamation-circle"></i> ' + json['error'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
-
                 for (key in json['error']) {
-                    oc.error(key, json['error'][key]);
+                    $('#input-' + key.replaceAll('_', '-')).addClass('is-invalid').find('.form-control, .form-select, .form-check-input, .form-check-label').addClass('is-invalid');
+                    $('#error-' + key.replaceAll('_', '-')).html(json['error'][key]).addClass('d-block');
                 }
             }
 

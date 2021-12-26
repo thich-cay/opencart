@@ -3,7 +3,7 @@ namespace Opencart\Catalog\Controller\Account;
 class Login extends \Opencart\System\Engine\Controller {
 	public function index(): void {
 		if ($this->customer->isLogged()) {
-			$this->response->redirect($this->url->link('account/account', 'language=' . $this->config->get('config_language')));
+			$this->response->redirect($this->url->link('account/account', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token']));
 		}
 
 		$this->load->language('account/login');
@@ -43,7 +43,6 @@ class Login extends \Opencart\System\Engine\Controller {
 			$data['success'] = '';
 		}
 
-		// Added strpos check to pass McAfee PCI compliance test (http://forum.opencart.com/viewtopic.php?f=10&t=12043&p=151494#p151295)
 		if (isset($this->session->data['redirect'])) {
 			$data['redirect'] = $this->session->data['redirect'];
 
@@ -75,40 +74,46 @@ class Login extends \Opencart\System\Engine\Controller {
 
 		$json = [];
 
-		$keys = [
-			'email',
-			'password',
-			'redirect'
-		];
-
-		foreach ($keys as $key) {
-			if (!isset($this->request->post[$key])) {
-				$this->request->post[$key] = '';
-			}
-		}
-
-		if (!isset($this->request->get['login_token']) || !isset($this->session->data['login_token']) || ($this->session->data['login_token'] != $this->request->get['login_token'])) {
+		if (!isset($this->request->get['login_token']) || !isset($this->session->data['login_token']) || ($this->request->get['login_token'] != $this->session->data['login_token'])) {
 			$json['redirect'] = $this->url->link('account/login', 'language=' . $this->config->get('config_language'), true);
 		}
 
-		// Check how many login attempts have been made.
-		$this->load->model('account/customer');
-
-		$login_info = $this->model_account_customer->getLoginAttempts($this->request->post['email']);
-
-		if ($login_info && ($login_info['total'] >= $this->config->get('config_login_attempts')) && strtotime('-1 hour') < strtotime($login_info['date_modified'])) {
-			$json['error']['warning'] = $this->language->get('error_attempts');
+		if ($this->customer->isLogged()) {
+			$json['redirect'] = $this->url->link('account/account', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token'], true);
 		}
 
-		// Check if customer has been approved.
-		$customer_info = $this->model_account_customer->getCustomerByEmail($this->request->post['email']);
+		if (!$json) {
+			$keys = [
+				'email',
+				'password',
+				'redirect'
+			];
 
-		if ($customer_info && !$customer_info['status']) {
-			$json['error']['warning'] = $this->language->get('error_approved');
-		} elseif (!$this->customer->login($this->request->post['email'], html_entity_decode($this->request->post['password'], ENT_QUOTES, 'UTF-8'))) {
-			$json['error']['warning'] = $this->language->get('error_login');
+			foreach ($keys as $key) {
+				if (!isset($this->request->post[$key])) {
+					$this->request->post[$key] = '';
+				}
+			}
 
-			$this->model_account_customer->addLoginAttempt($this->request->post['email']);
+			// Check how many login attempts have been made.
+			$this->load->model('account/customer');
+
+			$login_info = $this->model_account_customer->getLoginAttempts($this->request->post['email']);
+
+			if ($login_info && ($login_info['total'] >= $this->config->get('config_login_attempts')) && strtotime('-1 hour') < strtotime($login_info['date_modified'])) {
+				$json['error']['warning'] = $this->language->get('error_attempts');
+			}
+
+			// Check if customer has been approved.
+			$customer_info = $this->model_account_customer->getCustomerByEmail($this->request->post['email']);
+
+			if ($customer_info && !$customer_info['status']) {
+				$json['error']['warning'] = $this->language->get('error_approved');
+			} elseif (!$this->customer->login($this->request->post['email'], html_entity_decode($this->request->post['password'], ENT_QUOTES, 'UTF-8'))) {
+				$json['error']['warning'] = $this->language->get('error_login');
+
+				$this->model_account_customer->addLoginAttempt($this->request->post['email']);
+			}
 		}
 
 		if (!$json) {
@@ -122,16 +127,6 @@ class Login extends \Opencart\System\Engine\Controller {
 				'telephone'         => $customer_info['telephone'],
 				'custom_field'      => $customer_info['custom_field']
 			];
-
-			// Load payment and shipping addresses
-			$this->load->model('account/address');
-
-			$address_info = $this->model_account_address->getAddress($this->customer->getAddressId());
-
-			if ($address_info) {
-				$this->session->data['payment_address'] = $address_info;
-				$this->session->data['shipping_address'] = $address_info;
-			}
 
 			// Wishlist
 			if (isset($this->session->data['wishlist']) && is_array($this->session->data['wishlist'])) {
@@ -195,6 +190,7 @@ class Login extends \Opencart\System\Engine\Controller {
 		unset($this->session->data['reward']);
 		unset($this->session->data['voucher']);
 		unset($this->session->data['vouchers']);
+		unset($this->session->data['customer_token']);
 
 		$this->load->model('account/customer');
 
@@ -212,7 +208,10 @@ class Login extends \Opencart\System\Engine\Controller {
 
 			$this->model_account_customer->editToken($email, '');
 
-			$this->response->redirect($this->url->link('account/account', 'language=' . $this->config->get('config_language')));
+			// Create customer token
+			$this->session->data['customer_token'] = token(26);
+
+			$this->response->redirect($this->url->link('account/account', 'language=' . $this->config->get('config_language') . '&customer_token=' . $this->session->data['customer_token']));
 		} else {
 			$this->session->data['error'] = $this->language->get('error_login');
 

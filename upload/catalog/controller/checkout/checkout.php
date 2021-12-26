@@ -11,16 +11,10 @@ class Checkout extends \Opencart\System\Engine\Controller {
 		$products = $this->cart->getProducts();
 
 		foreach ($products as $product) {
-			$product_total = 0;
+			if (!$product['minimum']) {
+				$json['redirect'] = $this->url->link('checkout/cart', 'language=' . $this->config->get('config_language'), true);
 
-			foreach ($products as $product_2) {
-				if ($product_2['product_id'] == $product['product_id']) {
-					$product_total += $product_2['quantity'];
-				}
-			}
-
-			if ($product['minimum'] > $product_total) {
-				$this->response->redirect($this->url->link('checkout/cart', 'language=' . $this->config->get('config_language')));
+				break;
 			}
 		}
 
@@ -76,22 +70,6 @@ class Checkout extends \Opencart\System\Engine\Controller {
 
 		$data['payment_method'] = $this->load->controller('checkout/payment_method');
 		$data['confirm'] = $this->load->controller('checkout/confirm');
-
-		$this->load->model('catalog/information');
-
-		$information_info = $this->model_catalog_information->getInformation($this->config->get('config_checkout_id'));
-
-		if ($information_info) {
-			$data['text_agree'] = sprintf($this->language->get('text_agree'), $this->url->link('information/information|info', 'language=' . $this->config->get('config_language') . '&information_id=' . $this->config->get('config_checkout_id')), $information_info['title']);
-		} else {
-			$data['text_agree'] = '';
-		}
-
-		if (isset($this->session->data['agree'])) {
-			$data['agree'] = $this->session->data['agree'];
-		} else {
-			$data['agree'] = '';
-		}
 
 		$data['column_left'] = $this->load->controller('common/column_left');
 		$data['column_right'] = $this->load->controller('common/column_right');

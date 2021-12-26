@@ -2,7 +2,7 @@
 namespace Opencart\Catalog\Controller\Checkout;
 class Register extends \Opencart\System\Engine\Controller {
 	public function index(): string {
-		$this->load->language('checkout/checkout');
+		$this->load->language('checkout/register');
 
 		$data['text_login'] = sprintf($this->language->get('text_login'), $this->url->link('account/login', 'language=' . $this->config->get('config_language') . '&redirect=' . urlencode($this->url->link('account/login', 'language=' . $this->config->get('config_language'), true))));
 
@@ -12,7 +12,9 @@ class Register extends \Opencart\System\Engine\Controller {
 
 		$data['config_checkout_address'] = $this->config->get('config_checkout_address');
 		$data['config_checkout_guest'] = ($this->config->get('config_checkout_guest') && !$this->config->get('config_customer_price') && !$this->cart->hasDownload());
-		$data['config_file_max_size'] = $this->config->get('config_file_max_size');
+		$data['config_file_max_size'] = ((int)$this->config->get('config_file_max_size') * 1000);
+
+		$data['upload'] = $this->url->link('tool/upload', 'language=' . $this->config->get('config_language'));
 
 		$data['language'] = $this->config->get('config_language');
 		$data['shipping_required'] = $this->cart->hasShipping();
@@ -135,7 +137,7 @@ class Register extends \Opencart\System\Engine\Controller {
 	}
 
 	public function save() {
-		$this->load->language('checkout/checkout');
+		$this->load->language('checkout/register');
 
 		$json = [];
 
@@ -184,15 +186,7 @@ class Register extends \Opencart\System\Engine\Controller {
 		$products = $this->cart->getProducts();
 
 		foreach ($products as $product) {
-			$product_total = 0;
-
-			foreach ($products as $product_2) {
-				if ($product_2['product_id'] == $product['product_id']) {
-					$product_total += $product_2['quantity'];
-				}
-			}
-
-			if ($product['minimum'] > $product_total) {
+			if (!$product['minimum']) {
 				$json['redirect'] = $this->url->link('checkout/cart', 'language=' . $this->config->get('config_language'), true);
 
 				break;
@@ -370,13 +364,15 @@ class Register extends \Opencart\System\Engine\Controller {
 			// Captcha
 			$this->load->model('setting/extension');
 
-			$extension_info = $this->model_setting_extension->getExtensionByCode('captcha', $this->config->get('config_captcha'));
+			if (!$this->customer->isLogged()) {
+				$extension_info = $this->model_setting_extension->getExtensionByCode('captcha', $this->config->get('config_captcha'));
 
-			if ($extension_info && $this->config->get('captcha_' . $this->config->get('config_captcha') . '_status') && in_array('register', (array)$this->config->get('config_captcha_page'))) {
-				$captcha = $this->load->controller('extension/' . $extension_info['extension'] . '/captcha/' . $extension_info['code'] . '|validate');
+				if ($extension_info && $this->config->get('captcha_' . $this->config->get('config_captcha') . '_status') && in_array('register', (array)$this->config->get('config_captcha_page'))) {
+					$captcha = $this->load->controller('extension/' . $extension_info['extension'] . '/captcha/' . $extension_info['code'] . '|validate');
 
-				if ($captcha) {
-					$json['error']['captcha'] = $captcha;
+					if ($captcha) {
+						$json['error']['captcha'] = $captcha;
+					}
 				}
 			}
 		}
@@ -390,7 +386,7 @@ class Register extends \Opencart\System\Engine\Controller {
 				'lastname'          => $this->request->post['lastname'],
 				'email'             => $this->request->post['email'],
 				'telephone'         => $this->request->post['telephone'],
-				'custom_field'      => isset($this->request->post['custom_field']) ? $this->request->post['custom_field'] : []
+				'custom_field'      => isset($this->request->post['custom_field']['account']) ? $this->request->post['custom_field'] : []
 			];
 
 			// Register
@@ -538,12 +534,12 @@ class Register extends \Opencart\System\Engine\Controller {
 						'iso_code_2'     => $iso_code_2,
 						'iso_code_3'     => $iso_code_3,
 						'address_format' => $address_format,
-						'custom_field'   => isset($this->request->post['shipping_custom_field']) ? $this->request->post['shipping_custom_field'] : []
+						'custom_field'   => isset($this->request->post['shipping_custom_field']) ? $this->request->post['shipping_custom_field']['address'] : []
 					];
 
 					// Add
 					if ($this->request->post['account']) {
-						if ($this->config->get('config_checkout_address')) {
+						if (!$this->config->get('config_checkout_address')) {
 							$shipping_address_data['default'] = 1;
 						}
 
@@ -565,31 +561,23 @@ class Register extends \Opencart\System\Engine\Controller {
 					// Remove the address id so if the customer changes their mind and requires changing a different shipping address it will create a new address.
 					$this->session->data['shipping_address']['address_id'] = 0;
 				}
-
-				if (!$customer_group_info['approval']) {
-					// Shipping methods
-					$this->load->model('checkout/shipping_method');
-
-					$json['shipping_methods'] = $this->model_checkout_shipping_method->getMethods($this->session->data['shipping_address']);
-
-					$this->session->data['shipping_methods'] = $json['shipping_methods'];
-				}
 			}
 
 			// If everything good login
 			if (!$customer_group_info['approval']) {
-				if (!$this->customer->isLogged()) {
+				if ($this->request->post['account']) {
 					$this->customer->login($this->request->post['email'], $this->request->post['password']);
+
+					// Create customer token
+					$this->session->data['customer_token'] = token(26);
+
+					$json['success'] = $this->language->get('text_success_add');
+				} elseif ($this->customer->isLogged()) {
+					$json['success'] = $this->language->get('text_success_edit');
 				}
 
-				$json['success'] = 'Success: Your account has been successfully created!';
-
-				// Payment methods
-				$this->load->model('checkout/payment_method');
-
-				$json['payment_methods'] = $this->model_checkout_payment_method->getMethods($this->session->data['payment_address']);
-
-				$this->session->data['payment_methods'] = $json['payment_methods'];
+				unset($this->session->data['payment_methods']);
+				unset($this->session->data['shipping_methods']);
 			} else {
 				// If account needs approval we redirect to the account success / requires approval page.
 				$json['redirect'] = $this->url->link('account/success', 'language=' . $this->config->get('config_language'), true);

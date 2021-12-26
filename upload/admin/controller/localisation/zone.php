@@ -259,7 +259,7 @@ class Zone extends \Opencart\System\Engine\Controller {
 			'href' => $this->url->link('localisation/zone', 'user_token=' . $this->session->data['user_token'] . $url)
 		];
 
-		$data['save'] = $this->url->link('localisation/zone|save', 'user_token=' . $this->session->data['user_token'] . $url);
+		$data['save'] = $this->url->link('localisation/zone|save', 'user_token=' . $this->session->data['user_token']);
 		$data['back'] = $this->url->link('localisation/zone', 'user_token=' . $this->session->data['user_token'] . $url);
 
 		if (isset($this->request->get['zone_id'])) {
@@ -292,15 +292,15 @@ class Zone extends \Opencart\System\Engine\Controller {
 			$data['code'] = '';
 		}
 
+		$this->load->model('localisation/country');
+
+		$data['countries'] = $this->model_localisation_country->getCountries();
+
 		if (!empty($zone_info)) {
 			$data['country_id'] = $zone_info['country_id'];
 		} else {
 			$data['country_id'] = '';
 		}
-
-		$this->load->model('localisation/country');
-
-		$data['countries'] = $this->model_localisation_country->getCountries();
 
 		$data['header'] = $this->load->controller('common/header');
 		$data['column_left'] = $this->load->controller('common/column_left');

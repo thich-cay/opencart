@@ -32,7 +32,8 @@
                   <label for="input-customer" class="col-sm-2 col-form-label">{{ entry_customer }}</label>
                   <div class="col-sm-10">
                     <input type="text" name="customer" value="{{ customer }}" placeholder="{{ entry_customer }}" id="input-customer" class="form-control"{% if customer_id %} disabled{% endif %}/>
-                    <input type="hidden" name="customer_id" value="{{ customer_id }}" id="input-customer-id"/> <input type="hidden" name="customer_group_id" value="{{ customer_group_id }}" id="input-customer-group"/>
+                    <input type="hidden" name="customer_id" value="{{ customer_id }}" id="input-customer-id"/>
+                    <input type="hidden" name="customer_group_id" value="{{ customer_group_id }}" id="input-customer-group"/>  
                     <div id="error-customer" class="invalid-feedback"></div>
                   </div>
                 </div>
@@ -142,7 +143,7 @@
                       <div class="row mb-3 custom-field custom-field-{{ custom_field.custom_field_id }}">
                         <label class="col-sm-2 col-form-label">{{ custom_field.name }}</label>
                         <div class="col-sm-10">
-                          <button type="button" data-oc-toggle="upload" data-oc-url="index.php?route=tool/upload|upload&user_token={{ user_token }}" data-oc-target="#input-custom-field-{{ custom_field.custom_field_id }}" data-oc-loading-text="{{ text_loading }}" class="btn btn-light"><i class="fas fa-upload"></i> {{ button_upload }}</button>
+                          <button type="button" data-oc-loading-text="{{ text_loading }}" data-oc-toggle="upload" data-oc-url="{{ upload }}" data-oc-size-max="{{ config_file_max_size }}" data-oc-size-error="{{ error_upload_size }}" data-oc-target="#input-custom-field-{{ custom_field.custom_field_id }}" class="btn btn-light"><i class="fas fa-upload"></i> {{ button_upload }}</button>
                           <input type="hidden" name="custom_field[{{ custom_field.custom_field_id }}]" value="{{ affiliate_custom_field[custom_field.custom_field_id] ? affiliate_custom_field[custom_field.custom_field_id] }}" id="input-custom-field-{{ custom_field.custom_field_id }}"/>
                           <div id="error-custom-field-{{ custom_field.custom_field_id }}" class="invalid-feedback"></div>
                         </div>
@@ -331,7 +332,7 @@
               </fieldset>
             </div>
           </div>
-          <input type="hidden" name="affiliate_id" value="{{ affiliate_id }}" id="input-affiliate-id"/>
+          <input type="hidden" name="customer_id" value="{{ customer_id }}" id="input-customer-id"/>
         </form>
       </div>
     </div>
